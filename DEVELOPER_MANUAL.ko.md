@@ -16,16 +16,18 @@ mcp-google-search-server/
 ├── logs/              # 로그 파일 (gitignored)
 ├── src/               # 소스 코드
 │   ├── config/        # 설정 파일
-│   │   └── serviceConfig.js # 서비스별 설정 (Google 검색 URL 등)
+│   │   └── serviceConfig.js # 서비스별 설정 (Google 검색, Puppeteer 등)
 │   ├── server.js      # 주 서버 초기화 및 MCP 요청 처리 (Stdio 기반)
 │   ├── tools/         # MCP 도구 정의
 │   │   ├── googleSearchTool.js # Google 검색 도구
+│   │   ├── urlFetcherTool.js   # URL 콘텐츠 가져오기 도구
 │   │   └── index.js   # 모든 도구 내보내기
 │   ├── services/      # 비즈니스 로직 모듈
-│   │   └── searchService.js   # Google 검색 API 연동 로직
+│   │   └── searchService.js   # 검색 및 URL 콘텐츠 가져오기 로직
 │   ├── transports/    # 전송 계층 설정 (stdioTransport.js)
 │   └── utils/         # 유틸리티 함수
-│       └── logger.cjs    # 로깅 유틸리티
+│       ├── logger.cjs    # 로깅 유틸리티
+│       └── puppeteerHelper.js # Puppeteer 관련 헬퍼 함수
 ├── tests/             # 테스트 코드 (현재 스킵됨)
 ├── .gitignore
 ├── .prettierrc.json   # Prettier 설정
@@ -41,39 +43,38 @@ mcp-google-search-server/
 
 *   📄 **`src/server.js`**:
     *   `@modelcontextprotocol/sdk`에서 `McpServer` 인스턴스를 초기화합니다.
-    *   `src/tools/index.js`에서 도구 정의(`googleSearchTool`)를 가져옵니다.
-    *   가져온 도구를 MCP 서버에 등록합니다.
+    *   `src/tools/index.js`에서 모든 도구 정의(예: `googleSearchTool`, `fetchUrlTool`)를 가져옵니다.
+    *   가져온 도구들을 MCP 서버에 등록합니다.
     *   `src/transports/stdioTransport.js`에서 생성된 `StdioServerTransport`를 사용하여 MCP 서버를 연결합니다.
     *   서버는 표준 입출력(stdio)을 통해 MCP 요청을 수신하고 응답합니다.
     *   최상위 오류 처리 로직을 포함합니다.
 
 *   🛠️ **`src/tools/`**:
-    *   **`googleSearchTool.js`**: `googleSearch` MCP 도구를 정의합니다.
-        *   도구 정의는 `name`, `description`, `inputSchema` (`zod`를 사용한 유효성 검사) 및 `async handler` 함수를 가진 객체입니다.
-        *   핸들러는 유효성이 검사된 입력(`query`, `includeHtml`)을 받아 `src/services/searchService.js`의 `googleSearch` 함수를 호출하여 비즈니스 로직을 수행합니다.
-        *   결과를 MCP 클라이언트를 위해 표준 콘텐츠 형식(`{ type: "text", text: JSON.stringify(result) }`)으로 포맷하여 반환합니다.
-        *   오류 발생 시 로깅하고 오류를 전파합니다.
-    *   **`index.js`**: 모든 도구 정의(`googleSearchTool`)를 집계하고 배열로 내보내 `server.js`가 사용하도록 합니다.
+    *   **`googleSearchTool.js`**: `googleSearch` MCP 도구를 정의합니다. (상세 설명은 아래 섹션 참조)
+    *   **`urlFetcherTool.js`**: `fetchUrl` MCP 도구를 정의합니다. (상세 설명은 아래 섹션 참조)
+    *   **`index.js`**: 모든 도구 정의를 집계하고 배열로 내보내 `server.js`가 사용하도록 합니다.
 
 *   ⚙️ **`src/config/serviceConfig.js`**:
-    *   `searchService.js`를 위한 설정을 중앙에서 관리합니다.
-    *   Google 검색을 위한 `baseUrl` (`GOOGLE_SEARCH_BASE_URL` 환경 변수로 재정의 가능) 등을 포함합니다.
+    *   `searchService.js` 및 `puppeteerHelper.js`를 위한 설정을 중앙에서 관리합니다.
+    *   Google 검색을 위한 `baseUrl`, `referer` 등을 포함합니다.
+    *   Puppeteer를 위한 `executablePath`, `headless`, `args`, `userAgent`, `defaultHeaders`, `waitUntil`, `timeout` 등의 설정을 환경 변수를 통해 관리할 수 있도록 제공합니다.
     *   애플리케이션 환경(`NODE_ENV`) 정보도 포함합니다.
 
 *   📦 **`src/services/searchService.js`**:
-    *   Google 검색 수행과 관련된 비즈니스 로직을 담당합니다.
-    *   `axios`를 사용하여 Google 검색 URL에 HTTP GET 요청을 보냅니다.
-    *   `striptags` (또는 향후 `cheerio`)를 사용하여 검색 결과 HTML에서 태그를 제거하거나 원본을 유지하는 `cleanHtml` 유틸리티 함수를 포함합니다.
+    *   Google 검색 수행 및 지정된 URL의 콘텐츠 가져오기와 관련된 비즈니스 로직을 담당합니다.
+    *   `src/utils/puppeteerHelper.js`를 사용하여 웹 페이지의 raw HTML을 가져옵니다.
+    *   `cheerio`를 사용하여 HTML에서 불필요한 태그를 제거하고 텍스트 콘텐츠를 추출하는 `cleanHtml` 유틸리티 함수를 포함합니다.
     *   `googleSearch(query, includeHtml)` 함수는 검색 결과를 가져와 처리하고, `{ query, resultText, retrievedAt }` 형태의 객체를 반환합니다.
+    *   `fetchUrlContent(url)` 함수는 지정된 URL의 텍스트 콘텐츠를 가져와 처리하고, `{ url, textContent, retrievedAt }` 형태의 객체를 반환합니다.
 
 *   🚇 **`src/transports/stdioTransport.js`**:
     *   `@modelcontextprotocol/sdk`의 `StdioServerTransport` 인스턴스를 생성하고 구성하는 팩토리 함수(`createStdioTransport`)를 제공합니다.
 
-*   🪵 **`src/utils/logger.cjs`**:
-    *   `winston` 라이브러리를 사용하여 설정 가능한 로깅 시스템을 구현합니다.
-    *   콘솔과 순환 파일(`logs/app.log`, `exceptions.log`, `rejections.log`) 모두에 로깅을 지원합니다.
+*   🪵 **`src/utils/`**:
+    *   **`logger.cjs`**: `winston` 라이브러리를 사용하여 설정 가능한 로깅 시스템을 구현합니다. 콘솔 및 파일 로깅을 지원합니다.
+    *   **`puppeteerHelper.js`**: Puppeteer 브라우저 실행, 페이지 설정, raw HTML 콘텐츠 가져오기 등의 반복적인 작업을 처리하는 헬퍼 모듈입니다. `serviceConfig.js`에서 설정을 읽어 사용하며, OS별 기본 Chrome 경로를 제공하고 환경 변수를 통해 설정을 재정의할 수 있도록 합니다.
 
-## 3. 🔧 MCP 도구 구현 (`googleSearchTool`)
+## 3. 🔧 MCP 도구 구현
 
 ### 3.1. 🛠️ `googleSearch` 도구 (`src/tools/googleSearchTool.js`)
 
@@ -99,20 +100,55 @@ mcp-google-search-server/
     }
     ```
 
+### 3.2. 🛠️ `fetchUrl` 도구 (`src/tools/urlFetcherTool.js`)
+
+*   🎯 **목적**: 사용자가 제공한 URL의 웹 페이지 콘텐츠를 가져와 주요 텍스트 내용을 추출하여 반환합니다.
+*   📜 **설명**: `특정 url 접근을 통한 웹 컨텐츠 검색`
+*   📥 **입력 스키마 (`zod`):**
+    ```javascript
+    z.object({
+      url: z.string().url({ message: "유효한 URL을 입력해야 합니다." }),
+    })
+    ```
+*   🧠 **핸들러 로직:**
+    1.  `logger.cjs`를 사용하여 함수 실행 정보, 입력 파라미터, 결과 및 오류를 기록합니다.
+    2.  입력으로 받은 `url` 값을 `searchService.fetchUrlContent` 함수에 전달하여 호출합니다.
+    3.  `searchService`로부터 받은 결과 객체를 JSON 문자열로 변환하여 MCP 콘텐츠 구조(`{ type: "text", text: "..." }`)로 포맷합니다.
+    4.  성공 시 포맷된 콘텐츠를 반환하고, 예외 발생 시 오류를 전파하여 `server.js`의 오류 처리기에서 처리하도록 합니다.
+*   ✅ **출력 (성공 시 MCP 응답의 `result.content[0].text` 내부 JSON 구조 예시):**
+    ```json
+    {
+      "url": "입력된 URL",
+      "textContent": "추출된 웹 페이지 텍스트 내용...",
+      "retrievedAt": "2024-01-02T10:00:00.000Z"
+    }
+    ```
+
 ## 4. ⚙️ 설정 관리
 
-애플리케이션 설정은 `src/config/serviceConfig.js`에서 중앙 관리됩니다.
-주요 설정은 `GOOGLE_SEARCH_BASE_URL`이며, 환경 변수를 통해 재정의할 수 있습니다.
-실행 환경(`NODE_ENV`)도 환경 변수를 통해 설정 가능합니다. (자세한 내용은 [INSTALL.md](INSTALL.md) 참조)
+애플리케이션 설정은 `src/config/serviceConfig.js`에서 중앙 관리됩니다. 환경 변수를 통해 다양한 설정을 재정의할 수 있습니다. (자세한 내용은 [INSTALL.md](INSTALL.md) 및 `src/config/serviceConfig.js` 주석 참조)
+
+*   **Google 검색 관련**: `GOOGLE_SEARCH_BASE_URL` 등
+*   **Puppeteer 관련**:
+    *   `PUPPETEER_EXECUTABLE_PATH`: Chrome/Chromium 실행 파일 경로. 설정하지 않으면 OS별 기본 경로를 사용합니다.
+        *   **Windows 예시**: `C:\Program Files\Google\Chrome\Application\chrome.exe`
+        *   **macOS 예시**: `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`
+        *   **Linux 예시**: `/usr/bin/google-chrome`
+    *   `PUPPETEER_HEADLESS`: `true` 또는 `false`. 기본값 `true`.
+    *   `PUPPETEER_ARGS`: Puppeteer 실행 인자 (쉼표로 구분).
+    *   `PUPPETEER_USER_AGENT`: 사용할 User-Agent 문자열.
+    *   `PUPPETEER_WAIT_UNTIL`: 페이지 로드 대기 조건 (예: `networkidle2`).
+    *   `PUPPETEER_TIMEOUT`: 페이지 로드 타임아웃 (밀리초 단위).
+*   **실행 환경**: `NODE_ENV` (예: `development`, `production`)
 
 ## 5. 💪 SOLID 원칙 적용
 
 서버는 SOLID 원칙을 준수하는 것을 목표로 합니다:
 
-*   🎯 **단일 책임 원칙 (SRP)**: 각 모듈(`server.js`, `googleSearchTool.js`, `searchService.js`, `serviceConfig.js`, `logger.cjs`, `stdioTransport.js`)은 명확히 구분된 책임을 가집니다.
-*   🧩 **개방/폐쇄 원칙 (OCP)**: 새로운 MCP 도구를 추가할 때 기존 `googleSearchTool.js`나 `server.js`의 핵심 로직을 크게 수정할 필요 없이 `src/tools/`에 새 파일을 추가하고 `src/tools/index.js`에 등록하는 방식으로 확장이 용이합니다.
-*   🔗 **인터페이스 분리 원칙 (ISP)**: `googleSearch` 도구는 명확한 입력 스키마와 출력 형식을 정의하여 클라이언트에게 필요한 최소한의 인터페이스만 제공합니다.
-*   🔌 **의존관계 역전 원칙 (DIP)**: `googleSearchTool.js`는 구체적인 `axios` 호출 대신 추상화된 `searchService.js`에 의존합니다. `logger.cjs`도 추상화된 로깅 인터페이스를 제공합니다.
+*   🎯 **단일 책임 원칙 (SRP)**: 각 모듈(예: `server.js`, `googleSearchTool.js`, `urlFetcherTool.js`, `searchService.js`, `puppeteerHelper.js`, `serviceConfig.js`, `logger.cjs`)은 명확히 구분된 책임을 가집니다. `puppeteerHelper.js`는 Puppeteer 관련 작업을 캡슐화하여 `searchService.js`의 복잡도를 낮춥니다.
+*   🧩 **개방/폐쇄 원칙 (OCP)**: 새로운 MCP 도구를 추가할 때 기존 도구나 서비스 로직을 크게 수정할 필요 없이 `src/tools/`에 새 파일을 추가하고 `src/tools/index.js`에 등록하는 방식으로 확장이 용이합니다. 서비스 로직도 유사하게 확장 가능합니다.
+*   🔗 **인터페이스 분리 원칙 (ISP)**: 각 MCP 도구는 명확한 입력 스키마와 출력 형식을 정의하여 클라이언트에게 필요한 최소한의 인터페이스만 제공합니다.
+*   🔌 **의존관계 역전 원칙 (DIP)**: 도구 정의 파일(예: `googleSearchTool.js`)은 구체적인 Puppeteer 직접 호출 대신 추상화된 `searchService.js`에 의존합니다. `searchService.js`는 다시 `puppeteerHelper.js`에 의존하여 Puppeteer 관련 세부 구현으로부터 분리됩니다.
 
 ## 6. ✨ 새로운 MCP 도구 추가 (예시)
 
@@ -182,13 +218,31 @@ mcp-google-search-server/
       "id": "dev-manual-example-001"
     }
     ```
-2.  서버 실행 및 요청 전달:
+2.  `fetchUrl` 도구 호출을 위한 `request_fetch.json` 파일 생성 (예시):
+    ```json
+    {
+      "tool": "fetchUrl",
+      "inputs": {
+        "url": "https://www.google.com"
+      },
+      "id": "dev-manual-example-002"
+    }
+    ```
+3.  서버 실행 및 요청 전달:
     ```bash
+    # googleSearch 예시
     npm start < request.json
+
+    # fetchUrl 예시
+    npm start < request_fetch.json
     ```
     또는 개발 모드:
     ```bash
+    # googleSearch 예시
     npm run dev < request.json
+
+    # fetchUrl 예시
+    npm run dev < request_fetch.json
     ```
     서버는 표준 출력으로 MCP 응답을 JSON 형태로 출력합니다.
 
@@ -199,14 +253,16 @@ mcp-google-search-server/
 
 *   **SDK 관련 오류:** `@modelcontextprotocol/sdk`의 특정 버전과 호환성 문제가 발생하거나, `McpServer`, `StdioServerTransport` 등의 API가 예상과 다를 경우, SDK 문서를 참조하거나 버전을 확인해야 합니다.
 *   **JSON 입력 오류:** Stdio로 JSON 요청을 전달할 때, JSON 형식이 정확해야 합니다. 형식이 잘못된 경우 서버에서 파싱 오류가 발생할 수 있습니다.
+*   **Puppeteer `executablePath` 오류**: Chrome/Chromium 브라우저를 찾을 수 없는 경우 발생합니다. `PUPPETEER_EXECUTABLE_PATH` 환경 변수를 설정하거나 `src/config/serviceConfig.js` 또는 `src/utils/puppeteerHelper.js`의 기본 경로 설정을 확인하고 사용자의 환경에 맞게 수정해야 합니다.
+*   **웹 페이지 스크래핑 차단**: 일부 웹사이트는 자동화된 접근을 탐지하고 차단할 수 있습니다. `puppeteer-extra-plugin-stealth`가 이를 완화하는 데 도움이 되지만, 완벽하지 않을 수 있습니다. User-Agent 변경, 요청 간 지연 시간 추가 등의 추가 전략이 필요할 수 있습니다.
 
 ## 9. 🌱 향후 개선 사항
 
 *   **테스트 커버리지 확대:** Jest를 사용하여 단위 테스트 및 통합 테스트를 철저히 작성합니다.
-*   **`cheerio`를 사용한 HTML 결과 세분화:** `searchService.js`의 `cleanHtml` 함수에서 `includeHtml=true`일 때, 전체 HTML 대신 특정 검색 결과 영역만 추출하는 로직을 `cheerio`를 사용하여 구현할 수 있습니다.
+*   **`cheerio`를 사용한 HTML 결과 세분화:** `searchService.js`의 `cleanHtml` 함수에서 `includeHtml=true`일 때 (Google 검색), 전체 HTML 대신 특정 검색 결과 영역만 추출하는 로직을 `cheerio`를 사용하여 구현할 수 있습니다.
 *   **Google Custom Search API 연동:** 현재는 Google 웹 페이지를 직접 스크레이핑하는 방식이므로 불안정할 수 있습니다. 안정적인 운영을 위해 Google Custom Search JSON API 또는 유사한 공식 API 사용을 고려할 수 있습니다. 이 경우 `serviceConfig.js`에 API 키 설정 등이 추가될 것입니다.
 *   **더 정교한 오류 처리:** 사용자 정의 오류 클래스 및 세분화된 오류 코드를 도입하여 클라이언트에게 더 명확한 오류 정보를 제공할 수 있습니다.
-*   **SDK API 호환성 보장:** `@modelcontextprotocol/sdk`의 공식 문서 및 버전에 맞춰 `McpServer` 초기화, 도구 등록, Transport 연결 등의 로직을 검증하고 필요시 수정합니다.
+*   **Puppeteer 설정 고도화**: 프록시 설정, 쿠키 관리 등 더 다양한 Puppeteer 옵션을 `serviceConfig.js` 및 `puppeteerHelper.js`를 통해 제어할 수 있도록 확장합니다.
 
 ## cheerio 설치 및 사용 목적
 
