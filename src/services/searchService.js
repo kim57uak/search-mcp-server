@@ -1,7 +1,7 @@
 // src/services/searchService.js
-import axios from 'axios';
-import striptags from 'striptags'; // HTML 태그 제거용
-// import * as cheerio from 'cheerio'; // HTML 파싱 및 선택적 태그 제거/추출용 (striptags로 충분하면 cheerio는 불필요)
+// import axios from 'axios';
+// import striptags from 'striptags'; // HTML 태그 제거용
+import { load } from 'cheerio';
 import { serviceConfig } from '../config/serviceConfig.js';
 import logger from '../utils/logger.cjs';
 
@@ -20,7 +20,9 @@ const cleanHtml = (htmlString, includeHtml) => {
     //     return searchResultsHtml || htmlString; // 특정 영역이 없으면 원본 반환
     return htmlString; // 현재는 전체 HTML 반환
   }
-  return striptags(htmlString);
+  const $ = load(htmlString);
+  $('script, style, noscript').remove();
+  return $.text().replace(/\s+/g, ' ').trim();
 };
 
 /**
@@ -41,29 +43,34 @@ export const googleSearch = async (query, includeHtml = false) => {
   }
 
   const { baseUrl } = serviceConfig.googleSearch; // defaultParams 제거
-  const searchUrl = `${baseUrl}?q=${encodeURIComponent(query)}`;
-  // 실제 Google 검색 시에는 User-Agent 등 헤더 설정이 필요할 수 있음
-  // Google은 자동화된 쿼리를 차단할 수 있으므로, 실제 서비스에서는 Google Custom Search API 사용을 권장합니다.
-  // 이 예제에서는 웹 페이지를 직접 가져오는 방식을 사용합니다.
+  const searchUrl = `${baseUrl}${encodeURIComponent(query)}`;
 
   try {
-    logger.debug(`[SearchService] Requesting URL: ${searchUrl}`);
-    const response = await axios.get(searchUrl, {
-      headers: {
-        'User-Agent':
-          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-      },
+    logger.info(`[SearchService] Requesting URL (puppeteer): ${searchUrl}`);
+    // puppeteer 동적 import (ESM 호환)
+    const puppeteer = (await import('puppeteer-extra')).default;
+    const StealthPlugin = (await import('puppeteer-extra-plugin-stealth')).default;
+    puppeteer.use(StealthPlugin());
+    const browser = await puppeteer.launch({ 
+      headless: true,
+      executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', // Mac용 크롬 경로
+      args: ['--start-maximized'] // 브라우저를 최대화하여 실행
     });
+    const page = await browser.newPage();
+    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
+    await page.setExtraHTTPHeaders({
+      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+      'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
+      'Referer': 'https://www.google.com/',
+      'Connection': 'keep-alive',
+    });
+    await page.goto(searchUrl, { waitUntil: 'networkidle2' });
+    const rawHtml = await page.content();
+    await browser.close();
 
-    if (response.status !== 200) {
-      logger.error(
-        `[SearchService] Failed to fetch Google search results. Status: ${response.status}`,
-      );
-      throw new Error(`Google 검색 요청 실패: 상태 코드 ${response.status}`);
-    }
-
-    const rawHtml = response.data;
+    logger.info('[SearchService] Raw HTML received (puppeteer)');
     const resultText = cleanHtml(rawHtml, includeHtml);
+    logger.debug('[SearchService] Cleaned result text:', resultText.substring(0, 200));
     const retrievedAt = new Date().toISOString();
 
     logger.info(
@@ -77,8 +84,6 @@ export const googleSearch = async (query, includeHtml = false) => {
     };
 
     if (includeHtml) {
-      // 만약 cleanHtml에서 전체 HTML이 아닌 특정 부분만 추출했다면,
-      // 원본 전체 HTML도 제공하고 싶을 경우 아래와 같이 추가 가능
       // searchResult.rawHtml = rawHtml;
     }
 
@@ -88,10 +93,7 @@ export const googleSearch = async (query, includeHtml = false) => {
       `[SearchService] Error during Google search for query "${query}": ${error.message}`,
       { stack: error.stack },
     );
-    if (axios.isAxiosError(error)) {
-      throw new Error(`Google 검색 중 네트워크 오류 발생: ${error.message}`);
-    }
-    throw error; // 이미 Error 객체인 경우 그대로 throw
+    throw error;
   }
 };
 

@@ -144,3 +144,61 @@ Stdio를 통해 실행되는 MCP 서버는 표준 입력(stdin)으로 JSON 형�
 # .env 예시
 NODE_ENV=production
 ```
+
+# Puppeteer 설치 방법 추가
+
+구글 검색 결과를 실제 브라우저 환경에서 받아오기 위해 puppeteer를 사용합니다.
+
+## 설치 명령어
+
+```bash
+npm install puppeteer
+```
+
+## 참고 사항
+- puppeteer는 크롬 브라우저를 자동으로 다운로드하므로, 설치 시 다소 시간이 걸릴 수 있습니다.
+- 설치 후에는 코드에서 `import puppeteer from 'puppeteer'` 또는 `const puppeteer = require('puppeteer')`로 사용할 수 있습니다.
+- 서버 환경에 따라 headless 모드로 실행하는 것이 권장됩니다.
+
+## puppeteer-core 사용 시 주의사항
+
+- puppeteer-core는 크롬 브라우저를 자동 설치하지 않습니다.
+- 반드시 로컬에 크롬(Chrome) 브라우저가 설치되어 있어야 하며, 실행 경로를 직접 지정해야 합니다.
+- Mac 예시: `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`
+- Windows 예시: `C:/Program Files/Google/Chrome/Application/chrome.exe`
+- launch 옵션 예시:
+
+```js
+const browser = await puppeteer.launch({
+  executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', // Mac
+  headless: true
+});
+```
+
+## puppeteer-extra 및 stealth 플러그인 설치
+
+구글 등에서 자동화 탐지를 우회하기 위해 아래 패키지를 추가로 설치할 수 있습니다.
+
+### 설치 명령어
+
+```bash
+npm install puppeteer-extra puppeteer-extra-plugin-stealth
+```
+
+### 사용 목적
+- puppeteer-extra: puppeteer를 확장하여 다양한 플러그인 적용 가능
+- puppeteer-extra-plugin-stealth: 자동화 탐지(봇 차단) 우회 기능 제공
+
+## cheerio 설치 및 사용 목적
+
+HTML에서 script/style 등 불필요한 태그와 자바스크립트 코드를 완전히 제거하기 위해 cheerio를 사용합니다.
+
+### 설치 명령어
+
+```bash
+npm install cheerio
+```
+
+### 사용 목적
+- cheerio: HTML 파싱 및 특정 태그(script, style 등) 전체 삭제 가능
+- 검색 결과에서 불필요한 코드, 광고, 스크립트 등을 깔끔하게 제거할 수 있음

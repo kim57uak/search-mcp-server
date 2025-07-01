@@ -2,7 +2,7 @@
 
 // 환경 변수에서 Google 검색 기본 URL을 가져오거나 기본값을 사용합니다.
 const GOOGLE_SEARCH_BASE_URL =
-  process.env.GOOGLE_SEARCH_BASE_URL || 'https://www.google.com/search';
+  process.env.GOOGLE_SEARCH_BASE_URL || 'https://search.naver.com/search.naver?ie=utf8&query=';
 
 export const serviceConfig = {
   googleSearch: {

@@ -4,6 +4,10 @@ import { googleSearchTool } from './googleSearchTool.js';
 // import { anotherTool } from './anotherTool.js';
 
 export const tools = [
-  googleSearchTool,
+  {
+    ...googleSearchTool,
+    description: `google web search`,
+  },
+
   // anotherTool,
 ];

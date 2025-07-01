@@ -25,6 +25,7 @@ const logger = winston.createLogger({
     new winston.transports.Console({
       format: combine(colorize(), logFormat),
       level: 'info', // 콘솔에는 info 레벨 이상만 출력 (개발 시 debug로 변경 가능)
+      stderrLevels: ['error', 'warn', 'info', 'http', 'verbose', 'debug', 'silly'],
     }),
     new winston.transports.File({
       filename: path.join(logDir, 'app.log'),

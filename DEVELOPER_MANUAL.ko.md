@@ -207,4 +207,31 @@ mcp-google-search-server/
 *   **Google Custom Search API 연동:** 현재는 Google 웹 페이지를 직접 스크레이핑하는 방식이므로 불안정할 수 있습니다. 안정적인 운영을 위해 Google Custom Search JSON API 또는 유사한 공식 API 사용을 고려할 수 있습니다. 이 경우 `serviceConfig.js`에 API 키 설정 등이 추가될 것입니다.
 *   **더 정교한 오류 처리:** 사용자 정의 오류 클래스 및 세분화된 오류 코드를 도입하여 클라이언트에게 더 명확한 오류 정보를 제공할 수 있습니다.
 *   **SDK API 호환성 보장:** `@modelcontextprotocol/sdk`의 공식 문서 및 버전에 맞춰 `McpServer` 초기화, 도구 등록, Transport 연결 등의 로직을 검증하고 필요시 수정합니다.
+
+## cheerio 설치 및 사용 목적
+
+HTML에서 script/style 등 불필요한 태그와 자바스크립트 코드를 완전히 제거하기 위해 cheerio를 사용합니다.
+
+### 설치 명령어
+
+```bash
+npm install cheerio
 ```
+
+### 사용 목적
+- cheerio: HTML 파싱 및 특정 태그(script, style 등) 전체 삭제 가능
+- 검색 결과에서 불필요한 코드, 광고, 스크립트 등을 깔끔하게 제거할 수 있음
+
+## puppeteer-extra 및 stealth 플러그인 설치
+
+구글 등에서 자동화 탐지를 우회하기 위해 아래 패키지를 추가로 설치할 수 있습니다.
+
+### 설치 명령어
+
+```bash
+npm install puppeteer-extra puppeteer-extra-plugin-stealth
+```
+
+### 사용 목적
+- puppeteer-extra: puppeteer를 확장하여 다양한 플러그인 적용 가능
+- puppeteer-extra-plugin-stealth: 자동화 탐지(봇 차단) 우회 기능 제공

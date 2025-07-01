@@ -7,11 +7,11 @@ export const googleSearchTool = {
   name: 'googleSearch',
   description:
     'Google 웹 검색을 수행하고 결과를 반환합니다. HTML 태그 포함 여부를 선택할 수 있습니다.',
-  inputSchema: z.object({
+  inputSchema: {
     // inputSchema는 객체여야 합니다.
     query: z.string().min(1, { message: '검색어(query)는 필수입니다.' }),
     includeHtml: z.boolean().optional().default(false), // 기본값은 HTML 태그 제거
-  }),
+  },
   async handler({ query, includeHtml }) {
     // zod가 유효성 검사 후 분해 할당
     logger.info(
