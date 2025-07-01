@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 // src/server.js
-import { McpServer } from '@modelcontextprotocol/sdk'; // SDK에 따라 경로가 다를 수 있음
+import { McpServer } from '@modelcontextprotocol/sdk/server'; // 경로 수정
 import { createStdioTransport } from './transports/stdioTransport.js';
 import { tools } from './tools/index.js';
 import logger from './utils/logger.cjs';
