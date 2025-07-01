@@ -27,7 +27,8 @@ mcp-google-search-server/
 │   ├── transports/    # 전송 계층 설정 (stdioTransport.js)
 │   └── utils/         # 유틸리티 함수
 │       ├── logger.cjs    # 로깅 유틸리티
-│       └── puppeteerHelper.js # Puppeteer 관련 헬퍼 함수
+│       ├── puppeteerHelper.js # Puppeteer 관련 헬퍼 함수
+│       └── htmlParser.js # HTML 파싱 및 정리 유틸리티
 ├── tests/             # 테스트 코드 (현재 스킵됨)
 ├── .gitignore
 ├── .prettierrc.json   # Prettier 설정
@@ -63,7 +64,7 @@ mcp-google-search-server/
 *   📦 **`src/services/searchService.js`**:
     *   Google 검색 수행 및 지정된 URL의 콘텐츠 가져오기와 관련된 비즈니스 로직을 담당합니다.
     *   `src/utils/puppeteerHelper.js`를 사용하여 웹 페이지의 raw HTML을 가져옵니다.
-    *   `cheerio`를 사용하여 HTML에서 불필요한 태그를 제거하고 텍스트 콘텐츠를 추출하는 `cleanHtml` 유틸리티 함수를 포함합니다.
+    *   `src/utils/htmlParser.js`의 `cleanHtml` 함수를 사용하여 HTML에서 불필요한 태그를 제거하고 텍스트 콘텐츠를 추출합니다.
     *   `googleSearch(query, includeHtml)` 함수는 검색 결과를 가져와 처리하고, `{ query, resultText, retrievedAt }` 형태의 객체를 반환합니다.
     *   `fetchUrlContent(url)` 함수는 지정된 URL의 텍스트 콘텐츠를 가져와 처리하고, `{ url, textContent, retrievedAt }` 형태의 객체를 반환합니다.
 
@@ -73,6 +74,7 @@ mcp-google-search-server/
 *   🪵 **`src/utils/`**:
     *   **`logger.cjs`**: `winston` 라이브러리를 사용하여 설정 가능한 로깅 시스템을 구현합니다. 콘솔 및 파일 로깅을 지원합니다.
     *   **`puppeteerHelper.js`**: Puppeteer 브라우저 실행, 페이지 설정, raw HTML 콘텐츠 가져오기 등의 반복적인 작업을 처리하는 헬퍼 모듈입니다. `serviceConfig.js`에서 설정을 읽어 사용하며, OS별 기본 Chrome 경로를 제공하고 환경 변수를 통해 설정을 재정의할 수 있도록 합니다.
+    *   **`htmlParser.js`**: `cheerio`를 사용하여 HTML 문자열을 파싱하고, 불필요한 태그 제거, 텍스트 콘텐츠 추출 등의 작업을 수행하는 `cleanHtml` 함수를 제공합니다.
 
 ## 3. 🔧 MCP 도구 구현
 
@@ -145,10 +147,10 @@ mcp-google-search-server/
 
 서버는 SOLID 원칙을 준수하는 것을 목표로 합니다:
 
-*   🎯 **단일 책임 원칙 (SRP)**: 각 모듈(예: `server.js`, `googleSearchTool.js`, `urlFetcherTool.js`, `searchService.js`, `puppeteerHelper.js`, `serviceConfig.js`, `logger.cjs`)은 명확히 구분된 책임을 가집니다. `puppeteerHelper.js`는 Puppeteer 관련 작업을 캡슐화하여 `searchService.js`의 복잡도를 낮춥니다.
-*   🧩 **개방/폐쇄 원칙 (OCP)**: 새로운 MCP 도구를 추가할 때 기존 도구나 서비스 로직을 크게 수정할 필요 없이 `src/tools/`에 새 파일을 추가하고 `src/tools/index.js`에 등록하는 방식으로 확장이 용이합니다. 서비스 로직도 유사하게 확장 가능합니다.
+*   🎯 **단일 책임 원칙 (SRP)**: 각 모듈(예: `server.js`, `googleSearchTool.js`, `urlFetcherTool.js`, `searchService.js`, `puppeteerHelper.js`, `htmlParser.js`, `serviceConfig.js`, `logger.cjs`)은 명확히 구분된 책임을 가집니다. `puppeteerHelper.js`는 Puppeteer 관련 작업을, `htmlParser.js`는 HTML 파싱 및 정제 작업을 각각 캡슐화하여 `searchService.js`의 책임을 더욱 명확히 합니다.
+*   🧩 **개방/폐쇄 원칙 (OCP)**: 새로운 MCP 도구를 추가할 때 기존 도구나 서비스 로직을 크게 수정할 필요 없이 `src/tools/`에 새 파일을 추가하고 `src/tools/index.js`에 등록하는 방식으로 확장이 용이합니다. 서비스 로직 및 유틸리티 함수도 유사하게 확장 가능합니다.
 *   🔗 **인터페이스 분리 원칙 (ISP)**: 각 MCP 도구는 명확한 입력 스키마와 출력 형식을 정의하여 클라이언트에게 필요한 최소한의 인터페이스만 제공합니다.
-*   🔌 **의존관계 역전 원칙 (DIP)**: 도구 정의 파일(예: `googleSearchTool.js`)은 구체적인 Puppeteer 직접 호출 대신 추상화된 `searchService.js`에 의존합니다. `searchService.js`는 다시 `puppeteerHelper.js`에 의존하여 Puppeteer 관련 세부 구현으로부터 분리됩니다.
+*   🔌 **의존관계 역전 원칙 (DIP)**: 도구 정의 파일은 구체적인 웹 기술(Puppeteer, Cheerio) 직접 호출 대신 추상화된 `searchService.js`에 의존합니다. `searchService.js`는 다시 `puppeteerHelper.js`와 `htmlParser.js`에 의존하여 세부 구현으로부터 분리됩니다.
 
 ## 6. ✨ 새로운 MCP 도구 추가 (예시)
 
@@ -259,10 +261,10 @@ mcp-google-search-server/
 ## 9. 🌱 향후 개선 사항
 
 *   **테스트 커버리지 확대:** Jest를 사용하여 단위 테스트 및 통합 테스트를 철저히 작성합니다.
-*   **`cheerio`를 사용한 HTML 결과 세분화:** `searchService.js`의 `cleanHtml` 함수에서 `includeHtml=true`일 때 (Google 검색), 전체 HTML 대신 특정 검색 결과 영역만 추출하는 로직을 `cheerio`를 사용하여 구현할 수 있습니다.
+*   **`cheerio`를 사용한 HTML 결과 세분화:** `src/utils/htmlParser.js`의 `cleanHtml` 함수에서 `includeHtml=true`일 때, `selector` 옵션을 통해 특정 검색 결과 영역만 추출하는 기능을 더욱 발전시킬 수 있습니다. (현재는 기본적인 selector 기능만 포함)
 *   **Google Custom Search API 연동:** 현재는 Google 웹 페이지를 직접 스크레이핑하는 방식이므로 불안정할 수 있습니다. 안정적인 운영을 위해 Google Custom Search JSON API 또는 유사한 공식 API 사용을 고려할 수 있습니다. 이 경우 `serviceConfig.js`에 API 키 설정 등이 추가될 것입니다.
-*   **더 정교한 오류 처리:** 사용자 정의 오류 클래스 및 세분화된 오류 코드를 도입하여 클라이언트에게 더 명확한 오류 정보를 제공할 수 있습니다.
-*   **Puppeteer 설정 고도화**: 프록시 설정, 쿠키 관리 등 더 다양한 Puppeteer 옵션을 `serviceConfig.js` 및 `puppeteerHelper.js`를 통해 제어할 수 있도록 확장합니다.
+*   **더 정교한 오류 처리:** 사용자 정의 오류 클래스 및 세분화된 오류 코드를 `puppeteerHelper.js`, `htmlParser.js`, `searchService.js` 전반에 도입하여 클라이언트에게 더 명확한 오류 정보를 제공할 수 있습니다.
+*   **Puppeteer 설정 고도화**: 프록시 설정, 쿠키 관리, 요청 인터셉트 등 더 다양한 Puppeteer 옵션을 `serviceConfig.js` 및 `puppeteerHelper.js`를 통해 제어할 수 있도록 확장합니다.
 
 ## cheerio 설치 및 사용 목적
 

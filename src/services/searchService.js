@@ -1,24 +1,9 @@
 // src/services/searchService.js
-import { load } from 'cheerio';
+// import { load } from 'cheerio'; // 이제 htmlParser.js에서 사용
 import { serviceConfig } from '../config/serviceConfig.js';
 import logger from '../utils/logger.cjs';
 import { getRawHtml } from '../utils/puppeteerHelper.js'; // Puppeteer 헬퍼 함수 임포트
-
-/**
- * HTML 문자열에서 HTML 태그를 제거하거나 특정 부분만 추출합니다.
- * @param {string} htmlString - 원본 HTML 문자열
- * @param {boolean} includeHtml - HTML 태그를 포함할지 여부
- * @returns {string} 처리된 문자열
- */
-const cleanHtml = (htmlString, includeHtml) => {
-  if (includeHtml) {
-    // TODO: 특정 검색 결과 영역만 추출하는 로직 (cheerio 사용)
-    return htmlString;
-  }
-  const $ = load(htmlString);
-  $('script, style, noscript, iframe, header, footer, nav, aside').remove();
-  return $('body').text().replace(/\s+/g, ' ').trim(); // body 내용만 추출하고 공백 정리
-};
+import { cleanHtml } from '../utils/htmlParser.js'; // htmlParser 임포트
 
 /**
  * Google 검색을 수행합니다.
