@@ -1,4 +1,5 @@
 // src/config/serviceConfig.js
+import { findChromePath } from '../utils/chromePathFinder.js';
 
 // 환경 변수에서 Google 검색 기본 URL을 가져오거나 기본값을 사용합니다.
 const NAVER_SEARCH_BASE_URL =
@@ -17,7 +18,7 @@ export const serviceConfig = {
     referer: 'https://www.google.com/', // Google 검색 시 사용할 Referer
   },
   puppeteer: {
-    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || null, // OS별 기본 경로는 puppeteerHelper에서 처리
+    executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || findChromePath() || null, // OS별 기본 경로 자동 탐색
     headless: process.env.PUPPETEER_HEADLESS !== 'false', // 기본값 true, 'false' 문자열일 때만 false
     args: process.env.PUPPETEER_ARGS ? process.env.PUPPETEER_ARGS.split(',') : ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--start-maximized'],
     userAgent: process.env.PUPPETEER_USER_AGENT || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36',

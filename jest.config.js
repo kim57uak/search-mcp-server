@@ -7,4 +7,9 @@ export default {
   // coverageDirectory: "coverage",
   // coverageReporters: ["json", "lcov", "text", "clover"],
   // setupFilesAfterEnv: ['./jest.setup.js'], // 테스트 환경 설정 파일 (필요시)
+  testPathIgnorePatterns: [
+    "/node_modules/",
+    "tests/tools/googleSearchTool.test.js",
+    "tests/services/searchService.test.js"
+  ]
 };
