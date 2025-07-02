@@ -6,10 +6,10 @@ import logger from '../utils/logger.cjs';
 export const bingSearchTool = {
   name: 'bingSearch',
   description: 'Bing을 사용하여 웹 검색을 수행하고 검색 결과를 반환합니다.',
-  inputSchema: z.object({
+  inputSchema: {
     query: z.string().min(1, { message: '검색어(query)는 필수입니다.' }),
     includeHtml: z.boolean().optional().default(false),
-  }),
+  },
   async handler({ query, includeHtml }) {
     logger.info(
       `[bingSearchTool] Received request - Query: "${query}", Include HTML: ${includeHtml}`,
