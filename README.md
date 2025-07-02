@@ -31,8 +31,8 @@ MCP SDK는 `package.json` 파일에 프로젝트 종속성으로 나열되어 �
 ### 1. `naverSearch`
 
 *   **설명:** Naver 웹 검색을 수행하고 결과를 반환합니다. HTML 태그 포함 여부를 선택할 수 있습니다.
-*   **입력 스키마 (`inputSchema`):**
-    *   `query` (string, 필수): 검색할 단어나 문장입니다.
+*   **입력 (`inputs`):**
+    *   `query` (string, 필수): 검색할 단어나 문장입니다. (공백만으로는 안됨)
     *   `includeHtml` (boolean, 선택, 기본값: `false`): `true`로 설정하면 결과에 HTML 태그를 포함하고, `false`이면 제거된 텍스트만 반환합니다.
 *   **예상 출력 (MCP 응답의 `result.content[0].text` 내부 JSON 문자열):**
     ```json
@@ -59,8 +59,8 @@ MCP SDK는 `package.json` 파일에 프로젝트 종속성으로 나열되어 �
 ### 2. `daumSearch`
 
 *   **설명:** Daum 웹 검색을 수행하고 결과를 반환합니다. HTML 태그 포함 여부를 선택할 수 있습니다.
-*   **입력 스키마 (`inputSchema`):**
-    *   `query` (string, 필수): 검색할 단어나 문장입니다.
+*   **입력 (`inputs`):**
+    *   `query` (string, 필수): 검색할 단어나 문장입니다. (공백만으로는 안됨)
     *   `includeHtml` (boolean, 선택, 기본값: `false`): `true`로 설정하면 결과에 HTML 태그를 포함하고, `false`이면 제거된 텍스트만 반환합니다.
 *   **예상 출력 (MCP 응답의 `result.content[0].text` 내부 JSON 문자열):**
     ```json
@@ -75,8 +75,8 @@ MCP SDK는 `package.json` 파일에 프로젝트 종속성으로 나열되어 �
 ### 3. `bingSearch`
 
 *   **설명:** Bing 웹 검색을 수행하고 결과를 반환합니다. HTML 태그 포함 여부를 선택할 수 있습니다.
-*   **입력 스키마 (`inputSchema`):**
-    *   `query` (string, 필수): 검색할 단어나 문장입니다.
+*   **입력 (`inputs`):**
+    *   `query` (string, 필수): 검색할 단어나 문장입니다. (공백만으로는 안됨)
     *   `includeHtml` (boolean, 선택, 기본값: `false`): `true`로 설정하면 결과에 HTML 태그를 포함하고, `false`이면 제거된 텍스트만 반환합니다.
 *   **예상 출력 (MCP 응답의 `result.content[0].text` 내부 JSON 문자열):**
     ```json
@@ -91,8 +91,8 @@ MCP SDK는 `package.json` 파일에 프로젝트 종속성으로 나열되어 �
 ### 4. `integratedSearch`
 
 *   **설명:** Naver, Daum, Bing 검색 엔진에서 동시에 검색을 수행하고 통합된 결과를 반환합니다. HTML 태그 포함 여부를 선택할 수 있습니다.
-*   **입력 스키마 (`inputSchema`):**
-    *   `query` (string, 필수): 검색할 단어나 문장입니다.
+*   **입력 (`inputs`):**
+    *   `query` (string, 필수): 검색할 단어나 문장입니다. (공백만으로는 안됨)
     *   `includeHtml` (boolean, 선택, 기본값: `false`): `true`로 설정하면 결과에 HTML 태그를 포함하고, `false`이면 제거된 텍스트만 반환합니다.
 *   **예상 출력 (MCP 응답의 `result.content[0].text` 내부 JSON 문자열):**
     ```json
@@ -142,8 +142,8 @@ MCP SDK는 `package.json` 파일에 프로젝트 종속성으로 나열되어 �
 ### 5. `fetchUrl` (기존 `urlFetcherTool`에 해당)
 
 *   **설명:** 주어진 URL의 웹 페이지 내용을 가져와 텍스트 콘텐츠를 반환합니다.
-*   **입력 스키마 (`inputSchema`):**
-    *   `url` (string, 필수): 내용을 가져올 웹 페이지의 전체 URL입니다. (예: `http://example.com`)
+*   **입력 (`inputs`):**
+    *   `url` (string, 필수): 내용을 가져올 웹 페이지의 전체 URL입니다. (유효한 URL 형식이어야 함, 예: `http://example.com`)
 *   **예상 출력 (MCP 응답의 `result.content[0].text` 내부 JSON 문자열):**
     ```json
     {

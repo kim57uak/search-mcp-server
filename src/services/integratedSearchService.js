@@ -14,12 +14,13 @@ export const integratedSearch = async (query, includeHtml = false) => {
     `[IntegratedSearchService] Initiating integrated search for query: "${query}", includeHtml: ${includeHtml}`,
   );
 
-  if (!query || typeof query !== 'string' || query.trim() === '') {
-    logger.error(
-      '[IntegratedSearchService] Invalid query provided for integrated search.',
-    );
-    throw new Error('유효한 검색어를 입력해야 합니다.');
-  }
+  // 도구 레벨에서 Zod로 유효성 검사가 수행되므로 서비스 레벨에서는 제거 또는 간소화
+  // if (!query || typeof query !== 'string' || query.trim() === '') {
+  //   logger.error(
+  //     '[IntegratedSearchService] Invalid query provided for integrated search.',
+  //   );
+  //   throw new Error('유효한 검색어를 입력해야 합니다.');
+  // }
 
   try {
     const [naverResults, daumResults, bingResults] = await Promise.all([

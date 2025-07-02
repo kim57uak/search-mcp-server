@@ -24,10 +24,11 @@ export const naverSearch = async (query, includeHtml = false) => {
     `[SearchService] Initiating Naver search for query: "${query}", includeHtml: ${includeHtml}`,
   );
 
-  if (!query || typeof query !== 'string' || query.trim() === '') {
-    logger.error('[SearchService] Invalid query provided for Naver search.');
-    throw new Error('유효한 검색어를 입력해야 합니다.');
-  }
+  // 도구 레벨에서 Zod로 유효성 검사가 수행되므로 서비스 레벨에서는 제거 또는 간소화
+  // if (!query || typeof query !== 'string' || query.trim() === '') {
+  //   logger.error('[SearchService] Invalid query provided for Naver search.');
+  //   throw new Error('유효한 검색어를 입력해야 합니다.');
+  // }
 
   const { baseUrl, referer } = serviceConfig.naverSearch;
   const searchUrl = `${baseUrl}${encodeURIComponent(query)}`;
@@ -88,10 +89,11 @@ export const bingSearch = async (query, includeHtml = false) => {
     `[SearchService] Initiating Bing search for query: "${query}", includeHtml: ${includeHtml}`,
   );
 
-  if (!query || typeof query !== 'string' || query.trim() === '') {
-    logger.error('[SearchService] Invalid query provided for Bing search.');
-    throw new Error('유효한 검색어를 입력해야 합니다.');
-  }
+  // 도구 레벨에서 Zod로 유효성 검사가 수행되므로 서비스 레벨에서는 제거 또는 간소화
+  // if (!query || typeof query !== 'string' || query.trim() === '') {
+  //   logger.error('[SearchService] Invalid query provided for Bing search.');
+  //   throw new Error('유효한 검색어를 입력해야 합니다.');
+  // }
 
   const { baseUrl, referer } = serviceConfig.bingSearch;
   const searchUrl = `${baseUrl}${encodeURIComponent(query)}`;
@@ -149,10 +151,11 @@ export const daumSearch = async (query, includeHtml = false) => {
     `[SearchService] Initiating Daum search for query: "${query}", includeHtml: ${includeHtml}`,
   );
 
-  if (!query || typeof query !== 'string' || query.trim() === '') {
-    logger.error('[SearchService] Invalid query provided for Daum search.');
-    throw new Error('유효한 검색어를 입력해야 합니다.');
-  }
+  // 도구 레벨에서 Zod로 유효성 검사가 수행되므로 서비스 레벨에서는 제거 또는 간소화
+  // if (!query || typeof query !== 'string' || query.trim() === '') {
+  //   logger.error('[SearchService] Invalid query provided for Daum search.');
+  //   throw new Error('유효한 검색어를 입력해야 합니다.');
+  // }
 
   // serviceConfig에서 daumSearch 설정을 가져옵니다.
   const { baseUrl, referer, defaultParams = {} } = serviceConfig.daumSearch;
@@ -212,10 +215,11 @@ export const daumSearch = async (query, includeHtml = false) => {
 export const fetchUrlContent = async (url) => {
   logger.info(`[SearchService] Initiating content fetch for URL: "${url}"`);
 
-  if (!url || typeof url !== 'string' || !url.startsWith('http')) {
-    logger.error('[SearchService] Invalid URL provided for content fetch.');
-    throw new Error('유효한 URL을 입력해야 합니다 (예: http://example.com).');
-  }
+  // 도구 레벨에서 Zod로 유효성 검사가 수행되므로 서비스 레벨에서는 제거 또는 간소화
+  // if (!url || typeof url !== 'string' || !url.startsWith('http')) {
+  //   logger.error('[SearchService] Invalid URL provided for content fetch.');
+  //   throw new Error('유효한 URL을 입력해야 합니다 (예: http://example.com).');
+  // }
 
   let crawlerInstance = null;
   try {
