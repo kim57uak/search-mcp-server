@@ -31,8 +31,8 @@ MCP SDK는 `package.json` 파일에 프로젝트 종속성으로 나열되어 �
 ### 1. `naverSearch`
 
 *   **설명:** Naver 웹 검색을 수행하고 결과를 반환합니다. HTML 태그 포함 여부를 선택할 수 있습니다.
-*   **입력 스키마 (`inputSchema`):**
-    *   `query` (string, 필수): 검색할 단어나 문장입니다.
+*   **입력 (`inputs`):**
+    *   `query` (string, 필수): 검색할 단어나 문장입니다. (공백만으로는 안됨)
     *   `includeHtml` (boolean, 선택, 기본값: `false`): `true`로 설정하면 결과에 HTML 태그를 포함하고, `false`이면 제거된 텍스트만 반환합니다.
 *   **예상 출력 (MCP 응답의 `result.content[0].text` 내부 JSON 문자열):**
     ```json
@@ -55,6 +55,103 @@ MCP SDK는 `package.json` 파일에 프로젝트 종속성으로 나열되어 �
     }
     ```
     서버는 표준 출력으로 MCP 응답을 반환합니다. 자세한 요청/응답 방법은 [INSTALL.md](INSTALL.md)를 참조하십시오.
+
+### 2. `daumSearch`
+
+*   **설명:** Daum 웹 검색을 수행하고 결과를 반환합니다. HTML 태그 포함 여부를 선택할 수 있습니다.
+*   **입력 (`inputs`):**
+    *   `query` (string, 필수): 검색할 단어나 문장입니다. (공백만으로는 안됨)
+    *   `includeHtml` (boolean, 선택, 기본값: `false`): `true`로 설정하면 결과에 HTML 태그를 포함하고, `false`이면 제거된 텍스트만 반환합니다.
+*   **예상 출력 (MCP 응답의 `result.content[0].text` 내부 JSON 문자열):**
+    ```json
+    {
+      "query": "검색어",
+      "resultText": "Daum 검색 결과 내용 (HTML 포함 또는 제거됨)",
+      "retrievedAt": "YYYY-MM-DDTHH:mm:ss.sssZ",
+      "searchEngine": "daum"
+    }
+    ```
+
+### 3. `bingSearch`
+
+*   **설명:** Bing 웹 검색을 수행하고 결과를 반환합니다. HTML 태그 포함 여부를 선택할 수 있습니다.
+*   **입력 (`inputs`):**
+    *   `query` (string, 필수): 검색할 단어나 문장입니다. (공백만으로는 안됨)
+    *   `includeHtml` (boolean, 선택, 기본값: `false`): `true`로 설정하면 결과에 HTML 태그를 포함하고, `false`이면 제거된 텍스트만 반환합니다.
+*   **예상 출력 (MCP 응답의 `result.content[0].text` 내부 JSON 문자열):**
+    ```json
+    {
+      "query": "검색어",
+      "resultText": "Bing 검색 결과 내용 (HTML 포함 또는 제거됨)",
+      "retrievedAt": "YYYY-MM-DDTHH:mm:ss.sssZ",
+      "searchEngine": "bing"
+    }
+    ```
+
+### 4. `integratedSearch`
+
+*   **설명:** Naver, Daum, Bing 검색 엔진에서 동시에 검색을 수행하고 통합된 결과를 반환합니다. HTML 태그 포함 여부를 선택할 수 있습니다.
+*   **입력 (`inputs`):**
+    *   `query` (string, 필수): 검색할 단어나 문장입니다. (공백만으로는 안됨)
+    *   `includeHtml` (boolean, 선택, 기본값: `false`): `true`로 설정하면 결과에 HTML 태그를 포함하고, `false`이면 제거된 텍스트만 반환합니다.
+*   **예상 출력 (MCP 응답의 `result.content[0].text` 내부 JSON 문자열):**
+    ```json
+    {
+      "query": "검색어",
+      "results": [
+        {
+          "query": "검색어",
+          "resultText": "Naver 검색 결과 내용...",
+          "retrievedAt": "YYYY-MM-DDTHH:mm:ss.sssZ",
+          "searchEngine": "naver" // searchService에서 추가됨
+        },
+        {
+          "query": "검색어",
+          "resultText": "Daum 검색 결과 내용...",
+          "retrievedAt": "YYYY-MM-DDTHH:mm:ss.sssZ",
+          "searchEngine": "daum" // searchService에서 추가됨
+        },
+        {
+          "query": "검색어",
+          "resultText": "Bing 검색 결과 내용...",
+          "retrievedAt": "YYYY-MM-DDTHH:mm:ss.sssZ",
+          "searchEngine": "bing" // searchService에서 추가됨
+        }
+        // 또는 검색 실패 시
+        // {
+        //   "error": "Naver search failed",
+        //   "details": "오류 상세 메시지",
+        //   "searchEngine": "naver"
+        // }
+      ],
+      "retrievedAt": "YYYY-MM-DDTHH:mm:ss.sssZ"
+    }
+    ```
+*   **호출 예시 (Stdio - 서버의 표준 입력으로 JSON 전송):**
+    ```json
+    {
+      "tool": "integratedSearch",
+      "inputs": {
+        "query": "오늘의 날씨",
+        "includeHtml": false
+      },
+      "id": "readme-example-02"
+    }
+    ```
+
+### 5. `fetchUrl` (기존 `urlFetcherTool`에 해당)
+
+*   **설명:** 주어진 URL의 웹 페이지 내용을 가져와 텍스트 콘텐츠를 반환합니다.
+*   **입력 (`inputs`):**
+    *   `url` (string, 필수): 내용을 가져올 웹 페이지의 전체 URL입니다. (유효한 URL 형식이어야 함, 예: `http://example.com`)
+*   **예상 출력 (MCP 응답의 `result.content[0].text` 내부 JSON 문자열):**
+    ```json
+    {
+      "url": "가져온 URL",
+      "textContent": "추출된 텍스트 내용...",
+      "retrievedAt": "YYYY-MM-DDTHH:mm:ss.sssZ"
+    }
+    ```
 
 ## 📦 프로젝트 구조
 

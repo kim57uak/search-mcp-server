@@ -1,12 +1,12 @@
-// src/tools/googleSearchTool.js
+// src/tools/integratedSearchTool.js
 import { z } from 'zod';
-import { naverSearch as searchServiceNaverSearch } from '../services/searchService.js'; // 서비스 함수 이름 변경 방지
+import { integratedSearch } from '../services/integratedSearchService.js';
 import logger from '../utils/logger.cjs';
 
-export const naverSearchTool = {
-  name: 'naverSearch',
+export const integratedSearchTool = {
+  name: 'integratedSearch',
   description:
-    'Naver 웹 검색을 수행하고 결과를 반환합니다. HTML 태그 포함 여부를 선택할 수 있습니다.',
+    'Naver, Daum, Bing 검색 엔진에서 동시에 검색을 수행하고 통합된 결과를 반환합니다. HTML 태그 포함 여부를 선택할 수 있습니다.',
   inputSchema: {
     // inputSchema는 객체여야 합니다.
     query: z.string().min(1, { message: '검색어(query)는 필수입니다.' }),
@@ -20,7 +20,7 @@ export const naverSearchTool = {
 
     try {
       // searchService의 googleSearch 함수 호출
-      const result = await searchServiceNaverSearch(query, includeHtml);
+      const result = await integratedSearch(query, includeHtml);
 
       logger.info(
         `[NaverSearchTool] Successfully executed for query: "${query}"`,
