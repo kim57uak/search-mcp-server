@@ -20,9 +20,15 @@ async function launchBrowser() {
 
     logger.info(`[PuppeteerHelper] Launching browser with executablePath: ${executablePath}`);
     const browser = await puppeteer.launch({
-      headless: serviceConfig.puppeteer.headless !== undefined ? serviceConfig.puppeteer.headless : true,
+      headless: true,
       executablePath,
-      args: serviceConfig.puppeteer.args || ['--start-maximized', '--no-sandbox', '--disable-setuid-sandbox'], // 기본 args에 sandbox 옵션 추가
+      args: [
+        '--start-maximized',
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-blink-features=AutomationControlled',
+        ...(serviceConfig.puppeteer.args || [])
+      ],
     });
     return browser;
   } catch (error) {
@@ -44,11 +50,9 @@ export async function getRawHtml(url, pageOptions = {}) {
     browser = await launchBrowser();
     const page = await browser.newPage();
 
-    if (pageOptions.userAgent) {
-      await page.setUserAgent(pageOptions.userAgent);
-    } else {
-      await page.setUserAgent(serviceConfig.puppeteer.userAgent || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
-    }
+    const userAgent = pageOptions.userAgent || serviceConfig.puppeteer.userAgent ||
+      'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/114.0.0.0 Safari/537.36';
+    await page.setUserAgent(userAgent);
 
     let headers;
     if (pageOptions.extraHeaders) {
