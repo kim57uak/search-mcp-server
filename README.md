@@ -1,11 +1,11 @@
-# MCP Google Search Server (Node.js)
+# MCP Naver Search Server (Node.js)
 
-Google 웹 검색 기능을 제공하는 모델 컨텍스트 프로토콜(MCP)을 구현한 Node.js 서버입니다. 이 프로젝트는 `@modelcontextprotocol/sdk`를 사용하여 MCP 호환 도구를 노출합니다.
+Naver 웹 검색 기능을 제공하는 모델 컨텍스트 프로토콜(MCP)을 구현한 Node.js 서버입니다. 이 프로젝트는 `@modelcontextprotocol/sdk`를 사용하여 MCP 호환 도구를 노출합니다.
 
 ## ✨ 주요 기능
 
-*   **Google 웹 검색 도구:**
-    *   주어진 검색어에 대한 Google 검색을 수행합니다.
+*   **Naver 웹 검색 도구:**
+    *   주어진 검색어에 대한 Naver 검색을 수행합니다.
     *   검색 결과에서 HTML 태그를 포함하거나 제거하는 옵션을 제공합니다.
 *   **MCP 호환:** `@modelcontextprotocol/sdk`를 사용하여 MCP 표준을 따르는 도구를 제공합니다.
 *   **설정 가능:** `src/config/serviceConfig.js`를 통해 서비스 설정을 관리합니다.
@@ -28,9 +28,9 @@ MCP SDK는 `package.json` 파일에 프로젝트 종속성으로 나열되어 �
 
 ## 🛠️ 사용 가능한 MCP 도구
 
-### 1. `googleSearch`
+### 1. `naverSearch`
 
-*   **설명:** Google 웹 검색을 수행하고 결과를 반환합니다. HTML 태그 포함 여부를 선택할 수 있습니다.
+*   **설명:** Naver 웹 검색을 수행하고 결과를 반환합니다. HTML 태그 포함 여부를 선택할 수 있습니다.
 *   **입력 스키마 (`inputSchema`):**
     *   `query` (string, 필수): 검색할 단어나 문장입니다.
     *   `includeHtml` (boolean, 선택, 기본값: `false`): `true`로 설정하면 결과에 HTML 태그를 포함하고, `false`이면 제거된 텍스트만 반환합니다.
@@ -38,7 +38,7 @@ MCP SDK는 `package.json` 파일에 프로젝트 종속성으로 나열되어 �
     ```json
     {
       "query": "검색어",
-      "resultText": "검색 결과 내용 (HTML 포함 또는 제거됨)",
+      "resultText": "Naver 검색 결과 내용 (HTML 포함 또는 제거됨)",
       "retrievedAt": "YYYY-MM-DDTHH:mm:ss.sssZ"
     }
     ```
@@ -46,7 +46,7 @@ MCP SDK는 `package.json` 파일에 프로젝트 종속성으로 나열되어 �
     서버 실행 후, 다음 JSON 요청을 표준 입력으로 전달합니다.
     ```json
     {
-      "tool": "googleSearch",
+      "tool": "naverSearch",
       "inputs": {
         "query": "Node.js MCP",
         "includeHtml": false
@@ -58,15 +58,15 @@ MCP SDK는 `package.json` 파일에 프로젝트 종속성으로 나열되어 �
 
 ## 📦 프로젝트 구조
 
-mcp-google-search-server/
+mcp-naver-search-server/
 ├── logs/              # 로그 파일 (gitignored)
 ├── src/               # 소스 코드
 │   ├── config/        # 설정 파일 (serviceConfig.js)
 │   ├── server.js      # 주 서버 초기화 및 MCP 요청 처리 (Stdio 기반)
-│   ├── tools/         # MCP 도구 정의 (googleSearchTool.js, index.js)
+│   ├── tools/         # MCP 도구 정의 (naverSearchTool.js, urlFetcherTool.js, index.js)
 │   ├── services/      # 비즈니스 로직 모듈 (searchService.js)
 │   ├── transports/    # 전송 계층 설정 (stdioTransport.js)
-│   └── utils/         # 유틸리티 함수 (logger.cjs)
+│   └── utils/         # 유틸리티 함수 (logger.cjs, puppeteerHelper.js, htmlParser.js)
 ├── tests/             # 테스트 코드 (현재 스킵됨)
 ├── .eslintignore      # (삭제됨, eslint.config.mjs의 ignores로 대체 가능)
 ├── .eslintrc.json     # (삭제됨, eslint.config.mjs로 대체됨)

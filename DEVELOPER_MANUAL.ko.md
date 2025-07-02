@@ -1,10 +1,10 @@
-# MCP Google Search Server 개발자 매뉴얼
+# MCP Naver Search Server 개발자 매뉴얼
 
-이 문서는 MCP Google Search Server의 아키텍처, 구성 요소 및 개발 가이드라인에 대한 자세한 개요를 제공합니다.
+이 문서는 MCP Naver Search Server의 아키텍처, 구성 요소 및 개발 가이드라인에 대한 자세한 개요를 제공합니다.
 
 ## 1. 📖 프로젝트 개요
 
-MCP Google Search Server는 모델 컨텍스트 프로토콜(MCP) SDK를 사용하여 구축된 Node.js 애플리케이션입니다. Google 웹 검색 기능을 수행하는 단일 MCP 도구(`googleSearch`)를 노출합니다. 서버는 유지보수성과 확장성을 보장하기 위해 SOLID 원칙을 염두에 두고 설계되었습니다.
+MCP Naver Search Server는 모델 컨텍스트 프로토콜(MCP) SDK를 사용하여 구축된 Node.js 애플리케이션입니다. Naver 웹 검색 기능을 수행하는 단일 MCP 도구(`naverSearch`)를 노출합니다. 서버는 유지보수성과 확장성을 보장하기 위해 SOLID 원칙을 염두에 두고 설계되었습니다.
 
 서버는 모델 컨텍스트 프로토콜(MCP) SDK (`@modelcontextprotocol/sdk`)를 사용하여 구축되었습니다. 이 SDK는 프로젝트의 핵심 종속성이며, `package.json` 파일을 통해 관리되고 표준 `npm install` 프로세스의 일부로 설치됩니다. MCP 호환 서비스 및 도구를 만들고 관리하는 데 필요한 도구와 인터페이스를 제공합니다.
 
@@ -12,14 +12,14 @@ MCP Google Search Server는 모델 컨텍스트 프로토콜(MCP) SDK를 사용�
 
 프로젝트는 모듈식 구조를 따릅니다:
 
-mcp-google-search-server/
+mcp-naver-search-server/
 ├── logs/              # 로그 파일 (gitignored)
 ├── src/               # 소스 코드
 │   ├── config/        # 설정 파일
-│   │   └── serviceConfig.js # 서비스별 설정 (Google 검색, Puppeteer 등)
+│   │   └── serviceConfig.js # 서비스별 설정 (Naver 검색, Puppeteer 등)
 │   ├── server.js      # 주 서버 초기화 및 MCP 요청 처리 (Stdio 기반)
 │   ├── tools/         # MCP 도구 정의
-│   │   ├── googleSearchTool.js # Google 검색 도구
+│   │   ├── naverSearchTool.js # Naver 검색 도구
 │   │   ├── urlFetcherTool.js   # URL 콘텐츠 가져오기 도구
 │   │   └── index.js   # 모든 도구 내보내기
 │   ├── services/      # 비즈니스 로직 모듈
@@ -44,28 +44,28 @@ mcp-google-search-server/
 
 *   📄 **`src/server.js`**:
     *   `@modelcontextprotocol/sdk`에서 `McpServer` 인스턴스를 초기화합니다.
-    *   `src/tools/index.js`에서 모든 도구 정의(예: `googleSearchTool`, `fetchUrlTool`)를 가져옵니다.
+    *   `src/tools/index.js`에서 모든 도구 정의(예: `naverSearchTool`, `fetchUrlTool`)를 가져옵니다.
     *   가져온 도구들을 MCP 서버에 등록합니다.
     *   `src/transports/stdioTransport.js`에서 생성된 `StdioServerTransport`를 사용하여 MCP 서버를 연결합니다.
     *   서버는 표준 입출력(stdio)을 통해 MCP 요청을 수신하고 응답합니다.
     *   최상위 오류 처리 로직을 포함합니다.
 
 *   🛠️ **`src/tools/`**:
-    *   **`googleSearchTool.js`**: `googleSearch` MCP 도구를 정의합니다. (상세 설명은 아래 섹션 참조)
+    *   **`naverSearchTool.js`**: `naverSearch` MCP 도구를 정의합니다. (상세 설명은 아래 섹션 참조)
     *   **`urlFetcherTool.js`**: `fetchUrl` MCP 도구를 정의합니다. (상세 설명은 아래 섹션 참조)
     *   **`index.js`**: 모든 도구 정의를 집계하고 배열로 내보내 `server.js`가 사용하도록 합니다.
 
 *   ⚙️ **`src/config/serviceConfig.js`**:
     *   `searchService.js` 및 `puppeteerHelper.js`를 위한 설정을 중앙에서 관리합니다.
-    *   Google 검색을 위한 `baseUrl`, `referer` 등을 포함합니다.
+    *   Naver 검색을 위한 `baseUrl`, `referer` 등을 포함합니다.
     *   Puppeteer를 위한 `executablePath`, `headless`, `args`, `userAgent`, `defaultHeaders`, `waitUntil`, `timeout` 등의 설정을 환경 변수를 통해 관리할 수 있도록 제공합니다.
     *   애플리케이션 환경(`NODE_ENV`) 정보도 포함합니다.
 
 *   📦 **`src/services/searchService.js`**:
-    *   Google 검색 수행 및 지정된 URL의 콘텐츠 가져오기와 관련된 비즈니스 로직을 담당합니다.
+    *   Naver 검색 수행 및 지정된 URL의 콘텐츠 가져오기와 관련된 비즈니스 로직을 담당합니다.
     *   `src/utils/puppeteerHelper.js`를 사용하여 웹 페이지의 raw HTML을 가져옵니다.
     *   `src/utils/htmlParser.js`의 `cleanHtml` 함수를 사용하여 HTML에서 불필요한 태그를 제거하고 텍스트 콘텐츠를 추출합니다.
-    *   `googleSearch(query, includeHtml)` 함수는 검색 결과를 가져와 처리하고, `{ query, resultText, retrievedAt }` 형태의 객체를 반환합니다.
+    *   `naverSearch(query, includeHtml)` 함수는 검색 결과를 가져와 처리하고, `{ query, resultText, retrievedAt }` 형태의 객체를 반환합니다.
     *   `fetchUrlContent(url)` 함수는 지정된 URL의 텍스트 콘텐츠를 가져와 처리하고, `{ url, textContent, retrievedAt }` 형태의 객체를 반환합니다.
 
 *   🚇 **`src/transports/stdioTransport.js`**:
@@ -78,9 +78,9 @@ mcp-google-search-server/
 
 ## 3. 🔧 MCP 도구 구현
 
-### 3.1. 🛠️ `googleSearch` 도구 (`src/tools/googleSearchTool.js`)
+### 3.1. 🛠️ `naverSearch` 도구 (`src/tools/naverSearchTool.js`)
 
-*   🎯 **목적**: 사용자가 제공한 검색어(`query`)로 Google 웹 검색을 수행하고, HTML 태그 포함 여부(`includeHtml`)에 따라 처리된 결과를 반환합니다.
+*   🎯 **목적**: 사용자가 제공한 검색어(`query`)로 Naver 웹 검색을 수행하고, HTML 태그 포함 여부(`includeHtml`)에 따라 처리된 결과를 반환합니다.
 *   📥 **입력 스키마 (`zod`):**
     ```javascript
     z.object({
@@ -90,14 +90,14 @@ mcp-google-search-server/
     ```
 *   🧠 **핸들러 로직:**
     1.  `logger.cjs`를 사용하여 함수 실행 정보, 입력 파라미터, 결과 및 오류를 기록합니다.
-    2.  입력으로 받은 `query`와 `includeHtml` 값을 `searchService.googleSearch` 함수에 전달하여 호출합니다.
+    2.  입력으로 받은 `query`와 `includeHtml` 값을 `searchService.naverSearch` 함수에 전달하여 호출합니다.
     3.  `searchService`로부터 받은 결과 객체를 JSON 문자열로 변환하여 MCP 콘텐츠 구조(`{ type: "text", text: "..." }`)로 포맷합니다.
     4.  성공 시 포맷된 콘텐츠를 반환하고, 예외 발생 시 오류를 전파하여 `server.js`의 오류 처리기에서 처리하도록 합니다.
 *   ✅ **출력 (성공 시 MCP 응답의 `result.content[0].text` 내부 JSON 구조 예시):**
     ```json
     {
       "query": "사용자 검색어",
-      "resultText": "Google 검색 결과 (HTML 태그 포함 또는 제거됨)",
+      "resultText": "Naver 검색 결과 (HTML 태그 포함 또는 제거됨)",
       "retrievedAt": "2024-01-01T12:00:00.000Z"
     }
     ```
@@ -130,7 +130,7 @@ mcp-google-search-server/
 
 애플리케이션 설정은 `src/config/serviceConfig.js`에서 중앙 관리됩니다. 환경 변수를 통해 다양한 설정을 재정의할 수 있습니다. (자세한 내용은 [INSTALL.md](INSTALL.md) 및 `src/config/serviceConfig.js` 주석 참조)
 
-*   **Google 검색 관련**: `GOOGLE_SEARCH_BASE_URL` 등
+*   **Naver 검색 관련**: `NAVER_SEARCH_BASE_URL` 등 (예시, 실제 변수명은 `serviceConfig.js` 확인 필요)
 *   **Puppeteer 관련**:
     *   `PUPPETEER_EXECUTABLE_PATH`: Chrome/Chromium 실행 파일 경로. 설정하지 않으면 OS별 기본 경로를 사용합니다.
         *   **Windows 예시**: `C:\Program Files\Google\Chrome\Application\chrome.exe`
@@ -193,11 +193,13 @@ mcp-google-search-server/
     *   `src/tools/index.js`를 열어 새 도구를 가져오고 `tools` 배열에 추가합니다.
     ```javascript
     // src/tools/index.js
-    import { googleSearchTool } from './googleSearchTool.js';
+    import { naverSearchTool } from './naverSearchTool.js'; // naverSearchTool로 변경
+    import { urlFetcherTool } from './urlFetcherTool.js'; // urlFetcherTool 추가 (이미 존재한다면 수정 없음)
     import { myNewTool } from "./myNewTool.js"; // 새 도구 가져오기
 
     export const tools = [
-      googleSearchTool,
+      naverSearchTool, // naverSearchTool로 변경
+      urlFetcherTool,  // urlFetcherTool 추가 (이미 존재한다면 수정 없음)
       myNewTool, // 배열에 추가
     ];
     ```
@@ -207,12 +209,12 @@ mcp-google-search-server/
 
 서버 실행 지침은 [INSTALL.md](INSTALL.md)를 참조하십시오. Stdio 기반이므로, 서버 실행 후 표준 입력을 통해 JSON 형식으로 MCP 요청을 전송하고 표준 출력을 통해 결과를 확인합니다.
 
-**예시: `googleSearch` 도구 호출 (터미널에서 `request.json` 파일 사용)**
+**예시: `naverSearch` 도구 호출 (터미널에서 `request.json` 파일 사용)**
 
 1.  `request.json` 파일 생성:
     ```json
     {
-      "tool": "googleSearch",
+      "tool": "naverSearch",
       "inputs": {
         "query": "MCP SDK",
         "includeHtml": true
@@ -225,14 +227,14 @@ mcp-google-search-server/
     {
       "tool": "fetchUrl",
       "inputs": {
-        "url": "https://www.google.com"
+        "url": "https://www.naver.com" // 예시 URL 변경
       },
       "id": "dev-manual-example-002"
     }
     ```
 3.  서버 실행 및 요청 전달:
     ```bash
-    # googleSearch 예시
+    # naverSearch 예시
     npm start < request.json
 
     # fetchUrl 예시
@@ -240,7 +242,7 @@ mcp-google-search-server/
     ```
     또는 개발 모드:
     ```bash
-    # googleSearch 예시
+    # naverSearch 예시
     npm run dev < request.json
 
     # fetchUrl 예시
@@ -262,7 +264,7 @@ mcp-google-search-server/
 
 *   **테스트 커버리지 확대:** Jest를 사용하여 단위 테스트 및 통합 테스트를 철저히 작성합니다.
 *   **`cheerio`를 사용한 HTML 결과 세분화:** `src/utils/htmlParser.js`의 `cleanHtml` 함수에서 `includeHtml=true`일 때, `selector` 옵션을 통해 특정 검색 결과 영역만 추출하는 기능을 더욱 발전시킬 수 있습니다. (현재는 기본적인 selector 기능만 포함)
-*   **Google Custom Search API 연동:** 현재는 Google 웹 페이지를 직접 스크레이핑하는 방식이므로 불안정할 수 있습니다. 안정적인 운영을 위해 Google Custom Search JSON API 또는 유사한 공식 API 사용을 고려할 수 있습니다. 이 경우 `serviceConfig.js`에 API 키 설정 등이 추가될 것입니다.
+*   **Naver Search API 연동 (선택 사항):** 현재는 Naver 웹 페이지를 직접 스크레이핑하는 방식이므로 불안정할 수 있습니다. 안정적인 운영을 위해 Naver Search API 또는 유사한 공식 API 사용을 고려할 수 있습니다. 이 경우 `serviceConfig.js`에 API 키 설정 등이 추가될 것입니다.
 *   **더 정교한 오류 처리:** 사용자 정의 오류 클래스 및 세분화된 오류 코드를 `puppeteerHelper.js`, `htmlParser.js`, `searchService.js` 전반에 도입하여 클라이언트에게 더 명확한 오류 정보를 제공할 수 있습니다.
 *   **Puppeteer 설정 고도화**: 프록시 설정, 쿠키 관리, 요청 인터셉트 등 더 다양한 Puppeteer 옵션을 `serviceConfig.js` 및 `puppeteerHelper.js`를 통해 제어할 수 있도록 확장합니다.
 
@@ -282,7 +284,7 @@ npm install cheerio
 
 ## puppeteer-extra 및 stealth 플러그인 설치
 
-구글 등에서 자동화 탐지를 우회하기 위해 아래 패키지를 추가로 설치할 수 있습니다.
+Naver 등에서 자동화 탐지를 우회하기 위해 아래 패키지를 추가로 설치할 수 있습니다.
 
 ### 설치 명령어
 

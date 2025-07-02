@@ -1,6 +1,6 @@
-# 설치 안내서 (MCP Google Search Server)
+# 설치 안내서 (MCP Naver Search Server)
 
-이 안내서는 MCP Google Search Server를 로컬 환경에 설치하고 실행하는 방법을 설명합니다.
+이 안내서는 MCP Naver Search Server를 로컬 환경에 설치하고 실행하는 방법을 설명합니다.
 
 ## 사전 요구 사항
 
@@ -14,7 +14,7 @@
     만약 Git을 사용한다면, 다음 명령어로 프로젝트를 클론합니다:
     ```bash
     git clone <저장소_URL>
-    cd mcp-google-search-server
+    cd mcp-naver-search-server
     ```
     또는 프로젝트 소스 코드를 다운로드하고 압축을 해제합니다.
 
@@ -50,8 +50,8 @@ npm start
 서버가 성공적으로 실행되면, 다음과 같은 로그 메시지가 콘솔에 출력됩니다:
 ```
 [Server] MCP Server connected via StdioTransport.
-[Server] MCP Google Search server started successfully. Ready to accept requests via stdio.
-[Server] Available tools: googleSearch
+[Server] MCP Naver Search server started successfully. Ready to accept requests via stdio.
+[Server] Available tools: naverSearch, fetchUrl
 ```
 이는 서버가 표준 입력(stdin)을 통해 MCP 요청을 받을 준비가 되었음을 의미합니다.
 
@@ -59,10 +59,10 @@ npm start
 
 Stdio를 통해 실행되는 MCP 서버는 표준 입력(stdin)으로 JSON 형식의 요청을 받고, 표준 출력(stdout)으로 JSON 형식의 응답을 보냅니다.
 
-**요청 형식 예시 (`googleSearch` 도구):**
+**요청 형식 예시 (`naverSearch` 도구):**
 ```json
 {
-  "tool": "googleSearch",
+  "tool": "naverSearch",
   "inputs": {
     "query": "날씨",
     "includeHtml": false
@@ -77,7 +77,7 @@ Stdio를 통해 실행되는 MCP 서버는 표준 입력(stdin)으로 JSON 형�
 1.  **직접 입력:**
     서버 실행 후, 위 JSON 요청을 한 줄로 입력하거나 복사하여 터미널에 붙여넣고 Enter 키를 누릅니다. (JSON 형식이 깨지지 않도록 주의)
     예를 들어, 서버가 실행 중인 터미널에 다음과 같이 입력합니다:
-    `{"tool": "googleSearch", "inputs": {"query": "오늘 날씨", "includeHtml": false}, "id": "weather-req-01"}`
+    `{"tool": "naverSearch", "inputs": {"query": "오늘 날씨", "includeHtml": false}, "id": "weather-req-01"}`
     그리고 Enter를 누르면 서버가 응답을 출력합니다.
 
 2.  **파일 리디렉션:**
@@ -85,7 +85,7 @@ Stdio를 통해 실행되는 MCP 서버는 표준 입력(stdin)으로 JSON 형�
         ```json
         // request.json
         {
-          "tool": "googleSearch",
+          "tool": "naverSearch",
           "inputs": {
             "query": "오늘의 주요 뉴스",
             "includeHtml": false
@@ -107,7 +107,7 @@ Stdio를 통해 실행되는 MCP 서버는 표준 입력(stdin)으로 JSON 형�
 ```json
 {
   "id": "request-123",
-  "tool": "googleSearch",
+  "tool": "naverSearch",
   "status": "success",
   "result": {
     "content": [
@@ -123,7 +123,7 @@ Stdio를 통해 실행되는 MCP 서버는 표준 입력(stdin)으로 JSON 형�
 ```json
 {
   "id": "request-123",
-  "tool": "googleSearch",
+  "tool": "naverSearch",
   "status": "error",
   "error": { "message": "오류 메시지", "code": "오류_코드" }
 }
@@ -136,18 +136,19 @@ Stdio를 통해 실행되는 MCP 서버는 표준 입력(stdin)으로 JSON 형�
 다음과 같은 환경 변수를 사용하여 서버 설정을 변경할 수 있습니다:
 
 *   `NODE_ENV`: 애플리케이션 환경 (`development` 또는 `production`, 기본값: `development`)
-*   `GOOGLE_SEARCH_BASE_URL`: Google 검색에 사용될 기본 URL (기본값: `https://www.google.com/search`)
+*   `NAVER_SEARCH_BASE_URL`: Naver 검색에 사용될 기본 URL (기본값: `https://search.naver.com/search.naver?query=`) // 실제 값은 serviceConfig.js 참조
 
 환경 변수는 `.env` 파일을 프로젝트 루트에 생성하여 설정하거나, 서버 실행 시 직접 주입할 수 있습니다. (예: `NODE_ENV=production npm start`)
 `.env` 파일은 `.gitignore`에 의해 버전 관리에서 제외됩니다.
 ```
 # .env 예시
 NODE_ENV=production
+NAVER_SEARCH_BASE_URL=https://search.naver.com/search.naver?where=nexearch&sm=top_hty&fbm=0&ie=utf8&query=
 ```
 
 # Puppeteer 설치 방법 추가
 
-구글 검색 결과를 실제 브라우저 환경에서 받아오기 위해 puppeteer를 사용합니다.
+Naver 검색 결과를 실제 브라우저 환경에서 받아오기 위해 puppeteer를 사용합니다.
 
 ## 설치 명령어
 
@@ -177,7 +178,7 @@ const browser = await puppeteer.launch({
 
 ## puppeteer-extra 및 stealth 플러그인 설치
 
-구글 등에서 자동화 탐지를 우회하기 위해 아래 패키지를 추가로 설치할 수 있습니다.
+Naver 등에서 자동화 탐지를 우회하기 위해 아래 패키지를 추가로 설치할 수 있습니다.
 
 ### 설치 명령어
 
