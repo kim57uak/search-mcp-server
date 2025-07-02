@@ -6,6 +6,7 @@
 
 *   [Node.js](https://nodejs.org/) (버전 18.x 이상 권장)
 *   [npm](https://www.npmjs.com/) (Node.js 설치 시 함께 설치됨)
+*   웹 브라우저 (Puppeteer 사용 시 Chrome/Chromium, Selenium 사용 시 Chrome, Firefox 등)
 
 ## 설치 단계
 
@@ -13,18 +14,29 @@
 
     만약 Git을 사용한다면, 다음 명령어로 프로젝트를 클론합니다:
     ```bash
-    git clone <저장소_URL>
+    git clone <저장소_URL> # 실제 저장소 URL로 변경해주세요.
     cd mcp-naver-search-server
     ```
     또는 프로젝트 소스 코드를 다운로드하고 압축을 해제합니다.
 
-2.  **의존성 설치:**
+## 2. 의존성 설치 (모든 Node.js 패키지)
 
-    프로젝트 루트 디렉토리에서 다음 명령어를 실행하여 필요한 모든 의존성을 설치합니다:
+프로젝트를 실행하는 데 필요한 모든 Node.js 패키지(라이브러리)는 `package.json` 파일에 정의되어 있습니다. 다음 **단일 명령어**를 프로젝트 루트 디렉토리에서 실행하면, 이 모든 의존성이 한 번에 `node_modules`라는 폴더에 설치됩니다. 이는 Node.js 프로젝트의 표준적인 의존성 관리 방법입니다.
+
     ```bash
     npm install
     ```
-    이 과정에서 `@modelcontextprotocol/sdk`를 포함한 모든 패키지가 `node_modules` 디렉토리에 설치됩니다.
+
+이 명령어를 실행하면 다음과 같은 주요 패키지를 포함하여 `package.json`의 `dependencies` 및 `devDependencies`에 명시된 모든 패키지가 설치됩니다:
+*   `@modelcontextprotocol/sdk`: MCP 서버 및 도구 개발을 위한 핵심 SDK
+*   `puppeteer`, `puppeteer-extra`, `puppeteer-extra-plugin-stealth`: Puppeteer 기반 웹 크롤링용
+*   `selenium-webdriver`: Selenium 기반 웹 크롤링용
+*   `cheerio`: HTML 파싱용
+*   `winston`: 로깅용
+*   `zod`: 데이터 유효성 검사용
+*   기타 개발 및 실행에 필요한 유틸리티들
+
+**참고:** 웹 크롤러(Puppeteer 또는 Selenium)를 실제로 사용하기 위해서는 Node.js 패키지 설치 외에 각 크롤러에 맞는 브라우저 및 WebDriver 설정이 필요할 수 있습니다. 자세한 내용은 아래 "크롤러 설정 및 설치 안내" 섹션을 참조하세요.
 
 ## 실행 방법
 
@@ -47,7 +59,7 @@ npm start
 
 ## 서버 확인
 
-서버가 성공적으로 실행되면, 다음과 같은 로그 메시지가 콘솔에 출력됩니다:
+서버가 성공적으로 실행되면, 다음과 유사한 로그 메시지가 콘솔에 출력됩니다 (실제 도구 목록은 다를 수 있음):
 ```
 [Server] MCP Server connected via StdioTransport.
 [Server] MCP Naver Search server started successfully. Ready to accept requests via stdio.
@@ -120,86 +132,87 @@ Stdio를 통해 실행되는 MCP 서버는 표준 입력(stdin)으로 JSON 형�
 }
 ```
 오류 발생 시 `status`는 `"error"`가 되고 `error` 필드에 상세 내용이 포함될 수 있습니다.
-```json
-{
-  "id": "request-123",
-  "tool": "naverSearch",
-  "status": "error",
-  "error": { "message": "오류 메시지", "code": "오류_코드" }
-}
-```
 
 자세한 도구 사용법 및 요청/응답 형식은 [DEVELOPER_MANUAL.ko.md](DEVELOPER_MANUAL.ko.md)를 참조하십시오.
 
 ## 환경 변수 (선택 사항)
 
-다음과 같은 환경 변수를 사용하여 서버 설정을 변경할 수 있습니다:
+다음과 같은 환경 변수를 사용하여 서버 설정을 변경할 수 있습니다. 모든 크롤러 관련 설정은 `src/config/serviceConfig.js` 파일 내의 `crawler` 객체에 해당합니다.
 
-*   `NODE_ENV`: 애플리케이션 환경 (`development` 또는 `production`, 기본값: `development`)
-*   `NAVER_SEARCH_BASE_URL`: Naver 검색에 사용될 기본 URL (기본값: `https://search.naver.com/search.naver?query=`) // 실제 값은 serviceConfig.js 참조
+*   `NODE_ENV`: 애플리케이션 환경 (`development` 또는 `production`). 기본값: `development`.
+*   `CRAWLER_TYPE`: 사용할 크롤러를 지정합니다 (`'puppeteer'` 또는 `'selenium'`). 기본값: `'puppeteer'`.
 
-환경 변수는 `.env` 파일을 프로젝트 루트에 생성하여 설정하거나, 서버 실행 시 직접 주입할 수 있습니다. (예: `NODE_ENV=production npm start`)
-`.env` 파일은 `.gitignore`에 의해 버전 관리에서 제외됩니다.
-```
-# .env 예시
+### Puppeteer 설정 (`CRAWLER_TYPE='puppeteer'` 또는 기본값일 때)
+*   `PUPPETEER_EXECUTABLE_PATH`: Chrome/Chromium 실행 파일의 전체 경로. 설정하지 않으면 시스템에서 자동으로 찾거나 내부적으로 다운로드된 버전을 사용합니다. (예: `/usr/bin/google-chrome`, `C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe`)
+*   `PUPPETEER_HEADLESS`: 헤드리스 모드 실행 여부 (`true` 또는 `false`). 기본값: `true`.
+*   `PUPPETEER_ARGS`: Puppeteer 실행 시 브라우저에 전달할 추가 인자 (쉼표로 구분). (예: `--window-size=1920,1080,--disable-gpu`)
+*   `PUPPETEER_USER_AGENT`: 사용할 사용자 에이전트 문자열.
+*   `PUPPETEER_WAIT_UNTIL`: 페이지 로드 완료 대기 조건 (예: `load`, `domcontentloaded`, `networkidle0`, `networkidle2`). 기본값: `networkidle2`.
+*   `PUPPETEER_TIMEOUT`: 페이지 로드 또는 작업의 최대 대기 시간 (밀리초). 기본값: `60000` (60초).
+
+### Selenium 설정 (`CRAWLER_TYPE='selenium'`일 때)
+*   `SELENIUM_BROWSER`: Selenium이 제어할 브라우저 이름 (예: `'chrome'`, `'firefox'`, `'edge'`, `'safari'`). 기본값: `'chrome'`.
+*   `SELENIUM_DRIVER_PATH`: 해당 브라우저의 WebDriver 실행 파일 전체 경로. 설정하지 않으면 시스템 `PATH`에서 찾습니다. **(필수 설정일 수 있음, 아래 "Selenium WebDriver 설정" 참조)**
+*   `SELENIUM_HEADLESS`: 헤드리스 모드 실행 여부 (`true` 또는 `false`). 기본값: `true`. (브라우저 및 드라이버가 지원해야 함)
+*   `SELENIUM_ARGS`: WebDriver 실행 시 브라우저에 전달할 추가 인자 (쉼표로 구분).
+*   `SELENIUM_USER_AGENT`: 사용할 사용자 에이전트 문자열 (브라우저 시작 옵션으로 설정).
+*   `SELENIUM_PAGE_LOAD_TIMEOUT`: 페이지 로드 최대 대기 시간 (밀리초). 기본값: `60000` (60초).
+*   `SELENIUM_SCRIPT_TIMEOUT`: 비동기 스크립트 실행 최대 대기 시간 (밀리초). 기본값: `30000` (30초).
+
+### 기타 설정
+*   `NAVER_SEARCH_BASE_URL`: Naver 검색에 사용될 기본 URL.
+*   `NAVER_SEARCH_REFERER`: Naver 검색 시 사용할 Referer URL.
+*   (로그 레벨, 포트 등 다른 설정은 `src/config/serviceConfig.js` 및 관련 모듈 참조)
+
+환경 변수는 운영체제에서 직접 설정하거나, 프로젝트 루트에 `.env` 파일을 생성하여 관리할 수 있습니다. (예: `NODE_ENV=production npm start`)
+`.env` 파일은 `.gitignore`에 의해 버전 관리에서 제외되도록 하는 것이 일반적입니다.
+```env
+# .env 파일 예시
 NODE_ENV=production
-NAVER_SEARCH_BASE_URL=https://search.naver.com/search.naver?where=nexearch&sm=top_hty&fbm=0&ie=utf8&query=
+CRAWLER_TYPE=selenium
+SELENIUM_BROWSER=chrome
+SELENIUM_DRIVER_PATH=/usr/local/bin/chromedriver # 실제 chromedriver 경로로 수정
+PUPPETEER_EXECUTABLE_PATH=/Applications/Google Chrome.app/Contents/MacOS/Google Chrome
 ```
 
-# Puppeteer 설치 방법 추가
+## 크롤러 설정 및 설치 안내
 
-Naver 검색 결과를 실제 브라우저 환경에서 받아오기 위해 puppeteer를 사용합니다.
+이 서버는 웹 페이지 콘텐츠를 가져오기 위해 Puppeteer 또는 Selenium을 사용합니다. `CRAWLER_TYPE` 환경 변수를 통해 어떤 크롤러를 사용할지 선택할 수 있습니다.
 
-## 설치 명령어
+### 1. Puppeteer
 
-```bash
-npm install puppeteer
-```
+Puppeteer는 Headless Chrome 또는 Chromium 브라우저를 제어하기 위한 Node.js 라이브러리입니다.
 
-## 참고 사항
-- puppeteer는 크롬 브라우저를 자동으로 다운로드하므로, 설치 시 다소 시간이 걸릴 수 있습니다.
-- 설치 후에는 코드에서 `import puppeteer from 'puppeteer'` 또는 `const puppeteer = require('puppeteer')`로 사용할 수 있습니다.
-- 서버 환경에 따라 headless 모드로 실행하는 것이 권장됩니다.
+*   **라이브러리 설치**: `npm install` 명령을 실행하면 `package.json`에 정의된 `puppeteer`, `puppeteer-extra`, `puppeteer-extra-plugin-stealth`가 자동으로 설치됩니다.
+*   **브라우저 실행 파일**:
+    *   기본적으로 `puppeteer` 패키지는 호환되는 버전의 Chromium을 자동으로 다운로드하여 사용합니다.
+    *   만약 시스템에 이미 설치된 Chrome/Chromium을 사용하고 싶다면, `PUPPETEER_EXECUTABLE_PATH` 환경 변수를 통해 해당 실행 파일의 경로를 지정할 수 있습니다.
+*   **Stealth Plugin**: `puppeteer-extra-plugin-stealth`는 웹사이트의 자동화 탐지를 우회하는 데 도움을 줄 수 있습니다.
 
-## puppeteer-core 사용 시 주의사항
+### 2. Selenium WebDriver
 
-- puppeteer-core는 크롬 브라우저를 자동 설치하지 않습니다.
-- 반드시 로컬에 크롬(Chrome) 브라우저가 설치되어 있어야 하며, 실행 경로를 직접 지정해야 합니다.
-- Mac 예시: `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`
-- Windows 예시: `C:/Program Files/Google/Chrome/Application/chrome.exe`
-- launch 옵션 예시:
+Selenium은 다양한 웹 브라우저를 자동화하는 데 사용되는 강력한 도구입니다.
 
-```js
-const browser = await puppeteer.launch({
-  executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', // Mac
-  headless: true
-});
-```
+*   **라이브러리 설치**: `npm install` 명령을 실행하면 `package.json`에 정의된 `selenium-webdriver` 라이브러리가 자동으로 설치됩니다.
+    ```bash
+    # npm install selenium-webdriver # 이미 package.json에 포함되어 npm install 시 자동 설치됨
+    ```
+*   **WebDriver 실행 파일 설정 (필수)**:
+    `selenium-webdriver` 라이브러리 외에도, **제어하려는 각 브라우저에 맞는 WebDriver 실행 파일**을 별도로 다운로드하여 시스템이 접근 가능한 위치에 두어야 합니다.
+    1.  **WebDriver 다운로드**:
+        *   **ChromeDriver (Chrome 브라우저용)**: [https://chromedriver.chromium.org/downloads](https://chromedriver.chromium.org/downloads)
+        *   **GeckoDriver (Firefox 브라우저용)**: [https://github.com/mozilla/geckodriver/releases](https://github.com/mozilla/geckodriver/releases)
+        *   **EdgeDriver (Microsoft Edge용)**: [https://developer.microsoft.com/en-us/microsoft-edge/tools/webdriver/](https://developer.microsoft.com/en-us/microsoft-edge/tools/webdriver/)
+        *   (다른 브라우저의 WebDriver는 해당 브라우저의 공식 웹사이트에서 찾아보세요.)
+    2.  **WebDriver 경로 설정 방법**:
+        *   **방법 1 (권장): 시스템 PATH에 추가**: 다운로드한 WebDriver 실행 파일이 있는 디렉토리의 경로를 시스템의 `PATH` 환경 변수에 추가합니다. 이렇게 하면 별도의 경로 지정 없이 Selenium이 WebDriver를 찾을 수 있습니다.
+        *   **방법 2: 환경 변수로 직접 지정**: `SELENIUM_DRIVER_PATH` 환경 변수를 사용하여 WebDriver 실행 파일의 전체 경로를 직접 지정합니다. (예: `SELENIUM_DRIVER_PATH=/usr/local/bin/chromedriver` 또는 `SELENIUM_DRIVER_PATH=C:\WebDrivers\chromedriver.exe`)
 
-## puppeteer-extra 및 stealth 플러그인 설치
+### 3. Cheerio (HTML 파서)
 
-Naver 등에서 자동화 탐지를 우회하기 위해 아래 패키지를 추가로 설치할 수 있습니다.
+Cheerio는 서버 사이드에서 HTML을 효율적으로 파싱하고 DOM을 조작하기 위한 라이브러리입니다. 크롤링으로 가져온 HTML 문자열에서 특정 데이터를 추출하거나 불필요한 부분을 제거하는 데 사용됩니다.
 
-### 설치 명령어
-
-```bash
-npm install puppeteer-extra puppeteer-extra-plugin-stealth
-```
-
-### 사용 목적
-- puppeteer-extra: puppeteer를 확장하여 다양한 플러그인 적용 가능
-- puppeteer-extra-plugin-stealth: 자동화 탐지(봇 차단) 우회 기능 제공
-
-## cheerio 설치 및 사용 목적
-
-HTML에서 script/style 등 불필요한 태그와 자바스크립트 코드를 완전히 제거하기 위해 cheerio를 사용합니다.
-
-### 설치 명령어
-
-```bash
-npm install cheerio
-```
-
-### 사용 목적
-- cheerio: HTML 파싱 및 특정 태그(script, style 등) 전체 삭제 가능
-- 검색 결과에서 불필요한 코드, 광고, 스크립트 등을 깔끔하게 제거할 수 있음
+*   **라이브러리 설치**: `npm install` 명령을 실행하면 `package.json`에 정의된 `cheerio` 라이브러리가 자동으로 설치됩니다.
+    ```bash
+    # npm install cheerio # 이미 package.json에 포함되어 npm install 시 자동 설치됨
+    ```
