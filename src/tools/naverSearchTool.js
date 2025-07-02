@@ -1,12 +1,12 @@
 // src/tools/googleSearchTool.js
 import { z } from 'zod';
-import { googleSearch as searchServiceGoogleSearch } from '../services/searchService.js'; // 서비스 함수 이름 변경 방지
+import { naverSearch as searchServiceNaverSearch } from '../services/searchService.js'; // 서비스 함수 이름 변경 방지
 import logger from '../utils/logger.cjs';
 
-export const googleSearchTool = {
-  name: 'googleSearch',
+export const naverSearchTool = {
+  name: 'naverSearch',
   description:
-    'Google 웹 검색을 수행하고 결과를 반환합니다. HTML 태그 포함 여부를 선택할 수 있습니다.',
+    'Naver 웹 검색을 수행하고 결과를 반환합니다. HTML 태그 포함 여부를 선택할 수 있습니다.',
   inputSchema: {
     // inputSchema는 객체여야 합니다.
     query: z.string().min(1, { message: '검색어(query)는 필수입니다.' }),
@@ -15,15 +15,15 @@ export const googleSearchTool = {
   async handler({ query, includeHtml }) {
     // zod가 유효성 검사 후 분해 할당
     logger.info(
-      `[GoogleSearchTool] Executing with query: "${query}", includeHtml: ${includeHtml}`,
+      `[NaverSearchTool] Executing with query: "${query}", includeHtml: ${includeHtml}`,
     );
 
     try {
       // searchService의 googleSearch 함수 호출
-      const result = await searchServiceGoogleSearch(query, includeHtml);
+      const result = await searchServiceNaverSearch(query, includeHtml);
 
       logger.info(
-        `[GoogleSearchTool] Successfully executed for query: "${query}"`,
+        `[NaverSearchTool] Successfully executed for query: "${query}"`,
       );
       // MCP 콘텐츠 구조로 포맷하여 반환
       return {
@@ -36,7 +36,7 @@ export const googleSearchTool = {
       };
     } catch (error) {
       logger.error(
-        `[GoogleSearchTool] Error executing for query "${query}": ${error.message}`,
+        `[NaverSearchTool] Error executing for query "${query}": ${error.message}`,
         { error: error.stack },
       );
       // 오류 발생 시 구조화된 오류 메시지를 포함하여 throw 하거나 반환할 수 있습니다.

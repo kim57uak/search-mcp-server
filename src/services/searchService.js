@@ -1,38 +1,18 @@
 // src/services/searchService.js
-// import axios from 'axios';
-// import striptags from 'striptags'; // HTML 태그 제거용
-import { load } from 'cheerio';
+// import { load } from 'cheerio'; // 이제 htmlParser.js에서 사용
 import { serviceConfig } from '../config/serviceConfig.js';
 import logger from '../utils/logger.cjs';
-
-/**
- * HTML 문자열에서 HTML 태그를 제거하거나 특정 부분만 추출합니다.
- * 이 함수는 매뉴얼에서 언급된 cleanObject와 유사한 역할을 합니다.
- * @param {string} htmlString - 원본 HTML 문자열
- * @param {boolean} includeHtml - HTML 태그를 포함할지 여부
- * @returns {string} 처리된 문자열
- */
-const cleanHtml = (htmlString, includeHtml) => {
-  if (includeHtml) {
-    // TODO: 만약 특정 검색 결과 영역만 추출하고 싶다면 cheerio를 사용하여 해당 로직 구현
-    // 예: const $ = cheerio.load(htmlString);
-    //     const searchResultsHtml = $('#search-results-container').html(); // 가상의 ID
-    //     return searchResultsHtml || htmlString; // 특정 영역이 없으면 원본 반환
-    return htmlString; // 현재는 전체 HTML 반환
-  }
-  const $ = load(htmlString);
-  $('script, style, noscript').remove();
-  return $.text().replace(/\s+/g, ' ').trim();
-};
+import { getRawHtml } from '../utils/puppeteerHelper.js'; // Puppeteer 헬퍼 함수 임포트
+import { cleanHtml } from '../utils/htmlParser.js'; // htmlParser 임포트
 
 /**
  * Google 검색을 수행합니다.
  * @param {string} query - 검색어
- * @param {boolean} includeHtml - 결과에 HTML 태그를 포함할지 여부 (true: 포함, false: 제거)
- * @returns {Promise<object>} 검색 결과 객체 { query, resultText, retrievedAt, (includeHtml ? rawHtml : undefined) }
+ * @param {boolean} includeHtml - 결과에 HTML 태그를 포함할지 여부
+ * @returns {Promise<object>} 검색 결과 객체 { query, resultText, retrievedAt }
  * @throws {Error} 검색 중 오류 발생 시
  */
-export const googleSearch = async (query, includeHtml = false) => {
+export const naverSearch = async (query, includeHtml = false) => {
   logger.info(
     `[SearchService] Initiating Google search for query: "${query}", includeHtml: ${includeHtml}`,
   );
@@ -42,60 +22,80 @@ export const googleSearch = async (query, includeHtml = false) => {
     throw new Error('유효한 검색어를 입력해야 합니다.');
   }
 
-  const { baseUrl } = serviceConfig.googleSearch; // defaultParams 제거
+  const { baseUrl, referer } = serviceConfig.naverSearch;
   const searchUrl = `${baseUrl}${encodeURIComponent(query)}`;
 
   try {
-    logger.info(`[SearchService] Requesting URL (puppeteer): ${searchUrl}`);
-    // puppeteer 동적 import (ESM 호환)
-    const puppeteer = (await import('puppeteer-extra')).default;
-    const StealthPlugin = (await import('puppeteer-extra-plugin-stealth')).default;
-    puppeteer.use(StealthPlugin());
-    const browser = await puppeteer.launch({ 
-      headless: true,
-      executablePath: '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome', // Mac용 크롬 경로
-      args: ['--start-maximized'] // 브라우저를 최대화하여 실행
-    });
-    const page = await browser.newPage();
-    await page.setUserAgent('Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
-    await page.setExtraHTTPHeaders({
-      'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-      'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
-      'Referer': 'https://www.google.com/',
-      'Connection': 'keep-alive',
-    });
-    await page.goto(searchUrl, { waitUntil: 'networkidle2' });
-    const rawHtml = await page.content();
-    await browser.close();
+    logger.info(`[SearchService] Requesting URL via puppeteerHelper: ${searchUrl}`);
+    // puppeteerHelper 사용 시, userAgent, headers 등은 serviceConfig.puppeteer 또는 helper의 기본값 사용
+    const rawHtml = await getRawHtml(searchUrl, { referer }); // Google 검색 시 referer 전달
 
-    logger.info('[SearchService] Raw HTML received (puppeteer)');
+    logger.info('[SearchService] Raw HTML received for Google search');
     const resultText = cleanHtml(rawHtml, includeHtml);
-    logger.debug('[SearchService] Cleaned result text:', resultText.substring(0, 200));
+    logger.debug('[SearchService] Cleaned Google search result text:', resultText.substring(0, 200));
     const retrievedAt = new Date().toISOString();
 
     logger.info(
-      `[SearchService] Successfully retrieved and processed search results for query: "${query}"`,
+      `[SearchService] Successfully retrieved and processed Google search results for query: "${query}"`,
     );
 
-    const searchResult = {
+    return {
       query,
-      resultText, // HTML이 제거되었거나, includeHtml=true 시 원본 HTML (또는 특정 부분)
+      resultText,
       retrievedAt,
     };
-
-    if (includeHtml) {
-      // searchResult.rawHtml = rawHtml;
-    }
-
-    return searchResult;
   } catch (error) {
     logger.error(
       `[SearchService] Error during Google search for query "${query}": ${error.message}`,
       { stack: error.stack },
     );
-    throw error;
+    // puppeteerHelper에서 발생한 특정 오류 메시지를 그대로 전달하거나, 여기서 추가 처리 가능
+    throw error; // 에러를 다시 throw하여 상위 핸들러에서 처리
   }
 };
 
-// 다른 검색 관련 서비스 함수가 필요하면 여기에 추가
-// 예: export const anotherSearchOperation = async (...) => { ... };
+/**
+ * 주어진 URL의 내용을 가져와 텍스트 콘텐츠를 추출합니다.
+ * @param {string} url - 가져올 웹 페이지의 URL
+ * @returns {Promise<object>} 추출된 텍스트 콘텐츠와 요청 시간을 포함하는 객체 { url, textContent, retrievedAt }
+ * @throws {Error} URL 가져오기 또는 처리 중 오류 발생 시
+ */
+export const fetchUrlContent = async (url) => {
+  logger.info(`[SearchService] Initiating content fetch for URL: "${url}"`);
+
+  if (!url || typeof url !== 'string' || !url.startsWith('http')) {
+    logger.error('[SearchService] Invalid URL provided.');
+    throw new Error('유효한 URL을 입력해야 합니다 (예: http://example.com).');
+  }
+
+  try {
+    logger.info(`[SearchService] Requesting URL via puppeteerHelper: ${url}`);
+    // 특정 페이지 옵션이 필요 없다면 getRawHtml(url) 만 호출
+    // 예: User-Agent나 특정 헤더를 이 URL에만 다르게 적용하고 싶다면 pageOptions으로 전달
+    const rawHtml = await getRawHtml(url); // 기본 설정으로 URL 내용 가져오기
+
+    logger.info('[SearchService] Raw HTML received from URL');
+    // fetchUrlContent는 항상 HTML 태그를 제거하고 텍스트만 반환하므로 includeHtml=false 와 동일하게 처리
+    const textContent = cleanHtml(rawHtml, false);
+    logger.debug('[SearchService] Cleaned text content from URL:', textContent.substring(0, 500));
+    const retrievedAt = new Date().toISOString();
+
+    logger.info(
+      `[SearchService] Successfully retrieved and processed content for URL: "${url}"`,
+    );
+
+    return {
+      url,
+      textContent,
+      retrievedAt,
+    };
+  } catch (error) {
+    logger.error(
+      `[SearchService] Error during content fetch for URL "${url}": ${error.message}`,
+      { stack: error.stack },
+    );
+    // puppeteerHelper에서 발생한 특정 오류 메시지를 그대로 전달하거나, 여기서 추가 처리 가능
+    // 예를 들어, "URL을 찾을 수 없습니다" 또는 "URL 요청 시간 초과" 등의 메시지는 puppeteerHelper에서 이미 생성됨
+    throw error; // 에러를 다시 throw하여 상위 핸들러에서 처리
+  }
+};
