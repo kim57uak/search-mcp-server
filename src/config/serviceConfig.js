@@ -20,7 +20,7 @@ export const serviceConfig = {
   puppeteer: {
     executablePath: process.env.PUPPETEER_EXECUTABLE_PATH || findChromePath() || null, // OS별 기본 경로 자동 탐색
     headless: process.env.PUPPETEER_HEADLESS !== 'true', // 기본값 true, 'false' 문자열일 때만 false
-    args: process.env.PUPPETEER_ARGS ? process.env.PUPPETEER_ARGS.split(',') : ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--start-maximized'],
+    args: process.env.PUPPETEER_ARGS ? process.env.PUPPETEER_ARGS.split(',') : ['--no-sandbox', '--disable-setuid-sandbox', '--disable-dev-shm-usage', '--start-maximized','--disable-gpu','--headless'],
     userAgent: process.env.PUPPETEER_USER_AGENT || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/98.0.4758.102 Safari/537.36',
     defaultHeaders: {
       'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9',
