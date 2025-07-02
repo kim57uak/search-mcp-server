@@ -7,6 +7,8 @@ const NAVER_SEARCH_BASE_URL =
 const DAUM_SEARCH_BASE_URL = // Daum 검색 URL 추가
   process.env.DAUM_SEARCH_BASE_URL ||
   'https://search.daum.net/search?w=tot&DA=YZR&t__nil_searchbox=btn&sug=&sugo=&sq=&o=&q=';
+const BING_SEARCH_BASE_URL =
+  process.env.BING_SEARCH_BASE_URL || 'https://www.bing.com/search?q=';
 
 // 환경 변수 getter 함수 (타입 변환 및 기본값 처리)
 const getEnv = (key, defaultValue, type = 'string') => {
@@ -41,6 +43,11 @@ export const serviceConfig = {
       // Daum 검색에 필요한 기본 파라미터가 있다면 추가
     },
     referer: getEnv('DAUM_SEARCH_REFERER', 'https://search.daum.net/'), // Daum 검색 시 사용할 Referer
+  },
+  bingSearch: {
+    baseUrl: BING_SEARCH_BASE_URL,
+    defaultParams: {},
+    referer: getEnv('BING_SEARCH_REFERER', 'https://www.bing.com/'),
   },
   crawler: {
     // 사용할 크롤러 유형: 'puppeteer' 또는 'selenium'

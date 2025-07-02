@@ -77,6 +77,67 @@ export const naverSearch = async (query, includeHtml = false) => {
 };
 
 /**
+ * Bing 검색을 수행합니다.
+ * @param {string} query - 검색어
+ * @param {boolean} includeHtml - 결과에 HTML 태그를 포함할지 여부
+ * @returns {Promise<object>} 검색 결과 객체 { query, resultText, retrievedAt, searchEngine: 'bing' }
+ * @throws {Error} 검색 중 오류 발생 시
+ */
+export const bingSearch = async (query, includeHtml = false) => {
+  logger.info(
+    `[SearchService] Initiating Bing search for query: "${query}", includeHtml: ${includeHtml}`,
+  );
+
+  if (!query || typeof query !== 'string' || query.trim() === '') {
+    logger.error('[SearchService] Invalid query provided for Bing search.');
+    throw new Error('유효한 검색어를 입력해야 합니다.');
+  }
+
+  const { baseUrl, referer } = serviceConfig.bingSearch;
+  const searchUrl = `${baseUrl}${encodeURIComponent(query)}`;
+
+  let crawlerInstance = null;
+  try {
+    crawlerInstance = await createCrawler(serviceConfig.crawler);
+    logger.info(`[SearchService] Using ${crawlerInstance.constructor.name} for Bing search.`);
+
+    const pageOptions = {
+      referer, // Bing 검색 시 사용할 Referer
+    };
+
+    logger.info(`[SearchService] Requesting URL via ${crawlerInstance.constructor.name}: ${searchUrl}`);
+    const rawHtml = await crawlerInstance.getRawHtml(searchUrl, pageOptions);
+
+    logger.info('[SearchService] Raw HTML received for Bing search');
+    const resultText = cleanHtml(rawHtml, includeHtml);
+    logger.debug('[SearchService] Cleaned Bing search result text:', resultText.substring(0, 200));
+    const retrievedAt = new Date().toISOString();
+
+    logger.info(
+      `[SearchService] Successfully retrieved and processed Bing search results for query: "${query}"`,
+    );
+
+    return {
+      query,
+      resultText,
+      retrievedAt,
+      searchEngine: 'bing',
+    };
+  } catch (error) {
+    logger.error(
+      `[SearchService] Error during Bing search for query "${query}": ${error.message}`,
+      { stack: error.stack },
+    );
+    throw error;
+  } finally {
+    if (crawlerInstance) {
+      await crawlerInstance.close();
+      logger.info(`[SearchService] ${crawlerInstance.constructor.name} instance closed after Bing search.`);
+    }
+  }
+};
+
+/**
  * Daum 검색을 수행합니다.
  * @param {string} query - 검색어
  * @param {boolean} includeHtml - 결과에 HTML 태그를 포함할지 여부
