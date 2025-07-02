@@ -9,7 +9,6 @@ export default {
   // setupFilesAfterEnv: ['./jest.setup.js'], // 테스트 환경 설정 파일 (필요시)
   testPathIgnorePatterns: [
     "/node_modules/",
-    "tests/tools/googleSearchTool.test.js",
-    "tests/services/searchService.test.js"
+    "tests/tools/googleSearchTool.test.js" // searchService.test.js 제거
   ]
 };

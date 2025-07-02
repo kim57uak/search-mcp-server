@@ -4,7 +4,7 @@
 
 ## 1. 📖 프로젝트 개요
 
-MCP Naver Search Server는 모델 컨텍스트 프로토콜(MCP) SDK를 사용하여 구축된 Node.js 애플리케이션입니다. Naver 웹 검색 기능을 수행하는 단일 MCP 도구(`naverSearch`)를 노출합니다. 서버는 유지보수성과 확장성을 보장하기 위해 SOLID 원칙을 염두에 두고 설계되었습니다.
+MCP Naver Search Server는 모델 컨텍스트 프로토콜(MCP) SDK를 사용하여 구축된 Node.js 애플리케이션입니다. Naver 웹 검색 기능을 수행하는 MCP 도구(`naverSearchTool`)와 특정 URL의 콘텐츠를 가져오는 도구(`urlFetcherTool`)를 노출합니다. 이 서버는 웹 크롤링 작업에 Puppeteer 또는 Selenium을 선택적으로 사용할 수 있도록 유연하게 설계되었으며, 유지보수성과 확장성을 보장하기 위해 SOLID 원칙을 염두에 두고 개발되었습니다.
 
 서버는 모델 컨텍스트 프로토콜(MCP) SDK (`@modelcontextprotocol/sdk`)를 사용하여 구축되었습니다. 이 SDK는 프로젝트의 핵심 종속성이며, `package.json` 파일을 통해 관리되고 표준 `npm install` 프로세스의 일부로 설치됩니다. MCP 호환 서비스 및 도구를 만들고 관리하는 데 필요한 도구와 인터페이스를 제공합니다.
 
@@ -13,32 +13,38 @@ MCP Naver Search Server는 모델 컨텍스트 프로토콜(MCP) SDK를 사용�
 프로젝트는 모듈식 구조를 따릅니다:
 
 mcp-naver-search-server/
-├── logs/              # 로그 파일 (gitignored)
-├── src/               # 소스 코드
-│   ├── config/        # 설정 파일
-│   │   └── serviceConfig.js # 서비스별 설정 (Naver 검색, Puppeteer 등)
-│   ├── server.js      # 주 서버 초기화 및 MCP 요청 처리 (Stdio 기반)
-│   ├── tools/         # MCP 도구 정의
+├── logs/                  # 로그 파일 (gitignored)
+├── src/                   # 소스 코드
+│   ├── config/            # 설정 파일
+│   │   └── serviceConfig.js # 서비스별 설정 (Naver 검색, 크롤러 설정 등)
+│   ├── crawlers/          # 웹 크롤러 구현체 및 팩토리
+│   │   ├── puppeteerCrawler.js # Puppeteer 기반 크롤러
+│   │   ├── seleniumCrawler.js  # Selenium 기반 크롤러
+│   │   └── crawlerFactory.js   # 크롤러 인스턴스 생성 팩토리
+│   ├── interfaces/        # (개념적) 인터페이스 정의 (실제 파일은 없음)
+│   │   └── webCrawlerInterface.js # 웹 크롤러 인터페이스 (문서용)
+│   ├── server.js          # 주 서버 초기화 및 MCP 요청 처리 (Stdio 기반)
+│   ├── tools/             # MCP 도구 정의
 │   │   ├── naverSearchTool.js # Naver 검색 도구
 │   │   ├── urlFetcherTool.js   # URL 콘텐츠 가져오기 도구
-│   │   └── index.js   # 모든 도구 내보내기
-│   ├── services/      # 비즈니스 로직 모듈
+│   │   └── index.js       # 모든 도구 내보내기
+│   ├── services/          # 비즈니스 로직 모듈
 │   │   └── searchService.js   # 검색 및 URL 콘텐츠 가져오기 로직
-│   ├── transports/    # 전송 계층 설정 (stdioTransport.js)
-│   └── utils/         # 유틸리티 함수
-│       ├── logger.cjs    # 로깅 유틸리티
-│       ├── puppeteerHelper.js # Puppeteer 관련 헬퍼 함수
-│       └── htmlParser.js # HTML 파싱 및 정리 유틸리티
-├── tests/             # 테스트 코드 (현재 스킵됨)
+│   ├── transports/        # 전송 계층 설정 (stdioTransport.js)
+│   └── utils/             # 유틸리티 함수
+│       ├── logger.cjs        # 로깅 유틸리티
+│       ├── chromePathFinder.js # Chrome 실행 경로 탐색 유틸리티
+│       └── htmlParser.js     # HTML 파싱 및 정리 유틸리티
+├── tests/                 # 테스트 코드 (현재 일부 보류됨)
 ├── .gitignore
-├── .prettierrc.json   # Prettier 설정
+├── .prettierrc.json       # Prettier 설정
 ├── DEVELOPER_MANUAL.ko.md # 이 파일
-├── INSTALL.md         # 사용자를 위한 설치 안내서
-├── eslint.config.mjs  # ESLint 설정 (flat config)
-├── jest.config.js     # Jest 설정
-├── nodemon.json       # Nodemon 설정
-├── package.json       # 프로젝트 메타데이터 및 종속성
-└── package-lock.json  # 종속성의 정확한 버전 기록
+├── INSTALL.md             # 사용자를 위한 설치 안내서
+├── eslint.config.mjs      # ESLint 설정 (flat config)
+├── jest.config.js         # Jest 설정
+├── nodemon.json           # Nodemon 설정
+├── package.json           # 프로젝트 메타데이터 및 종속성
+└── package-lock.json      # 종속성의 정확한 버전 기록
 
 ### 🔑 주요 구성 요소:
 
@@ -56,31 +62,42 @@ mcp-naver-search-server/
     *   **`index.js`**: 모든 도구 정의를 집계하고 배열로 내보내 `server.js`가 사용하도록 합니다.
 
 *   ⚙️ **`src/config/serviceConfig.js`**:
-    *   `searchService.js` 및 `puppeteerHelper.js`를 위한 설정을 중앙에서 관리합니다.
+    *   `searchService.js` 및 크롤러(`PuppeteerCrawler`, `SeleniumCrawler`)를 위한 설정을 중앙에서 관리합니다.
     *   Naver 검색을 위한 `baseUrl`, `referer` 등을 포함합니다.
-    *   Puppeteer를 위한 `executablePath`, `headless`, `args`, `userAgent`, `defaultHeaders`, `waitUntil`, `timeout` 등의 설정을 환경 변수를 통해 관리할 수 있도록 제공합니다.
+    *   **크롤러 설정 (`crawler`)**:
+        *   `type`: 사용할 크롤러 유형 (`'puppeteer'` 또는 `'selenium'`). 환경 변수 `CRAWLER_TYPE`으로 제어.
+        *   `puppeteer`: Puppeteer 관련 설정 (예: `executablePath`, `headless`, `args`, `userAgent`, `timeout` 등). 환경 변수 `PUPPETEER_*` 시리즈로 제어.
+        *   `selenium`: Selenium 관련 설정 (예: `browser`, `driverPath`, `headless`, `args`, `userAgent`, `pageLoadTimeout` 등). 환경 변수 `SELENIUM_*` 시리즈로 제어.
     *   애플리케이션 환경(`NODE_ENV`) 정보도 포함합니다.
 
 *   📦 **`src/services/searchService.js`**:
     *   Naver 검색 수행 및 지정된 URL의 콘텐츠 가져오기와 관련된 비즈니스 로직을 담당합니다.
-    *   `src/utils/puppeteerHelper.js`를 사용하여 웹 페이지의 raw HTML을 가져옵니다.
+    *   `src/crawlers/crawlerFactory.js`의 `createCrawler` 함수를 사용하여 현재 설정에 맞는 크롤러(Puppeteer 또는 Selenium) 인스턴스를 동적으로 생성합니다.
+    *   생성된 크롤러 인스턴스의 `getRawHtml` 메서드를 호출하여 웹 페이지의 raw HTML을 가져옵니다.
     *   `src/utils/htmlParser.js`의 `cleanHtml` 함수를 사용하여 HTML에서 불필요한 태그를 제거하고 텍스트 콘텐츠를 추출합니다.
     *   `naverSearch(query, includeHtml)` 함수는 검색 결과를 가져와 처리하고, `{ query, resultText, retrievedAt }` 형태의 객체를 반환합니다.
     *   `fetchUrlContent(url)` 함수는 지정된 URL의 텍스트 콘텐츠를 가져와 처리하고, `{ url, textContent, retrievedAt }` 형태의 객체를 반환합니다.
+    *   각 함수 실행 후 크롤러 인스턴스의 `close()` 메서드를 호출하여 리소스를 정리합니다.
+
+*   🔩 **`src/crawlers/`**:
+    *   **`puppeteerCrawler.js`**: `WebCrawlerInterface`를 구현하는 Puppeteer 기반 크롤러입니다. 생성자에서 Puppeteer 설정을 받아 브라우저를 실행하고, `getRawHtml` 메서드로 페이지 콘텐츠를 가져옵니다. `puppeteer-extra`와 `puppeteer-extra-plugin-stealth`를 사용하여 봇 탐지 우회를 시도합니다.
+    *   **`seleniumCrawler.js`**: `WebCrawlerInterface`를 구현하는 Selenium WebDriver 기반 크롤러입니다. 생성자에서 Selenium 및 브라우저 설정을 받아 WebDriver 세션을 시작하고, `getRawHtml` 메서드로 페이지 콘텐츠를 가져옵니다. Chrome, Firefox 등 다양한 브라우저를 지원할 수 있도록 설계되었습니다.
+    *   **`crawlerFactory.js`**: `createCrawler(config)` 함수를 제공합니다. `serviceConfig.crawler` 설정을 기반으로 `PuppeteerCrawler` 또는 `SeleniumCrawler` 인스턴스를 생성하여 반환합니다. 이를 통해 `searchService.js`는 구체적인 크롤러 구현에 직접 의존하지 않습니다.
+    *   **`src/interfaces/webCrawlerInterface.js` (개념적)**: `getRawHtml(url, options)`, `launch(config)`, `close()` 등의 메서드를 포함하는 웹 크롤러의 공통 인터페이스를 정의합니다. 실제 파일로 존재하지 않을 수 있지만, `PuppeteerCrawler`와 `SeleniumCrawler`가 이 인터페이스를 따르도록 설계되었습니다.
 
 *   🚇 **`src/transports/stdioTransport.js`**:
     *   `@modelcontextprotocol/sdk`의 `StdioServerTransport` 인스턴스를 생성하고 구성하는 팩토리 함수(`createStdioTransport`)를 제공합니다.
 
 *   🪵 **`src/utils/`**:
     *   **`logger.cjs`**: `winston` 라이브러리를 사용하여 설정 가능한 로깅 시스템을 구현합니다. 콘솔 및 파일 로깅을 지원합니다.
-    *   **`puppeteerHelper.js`**: Puppeteer 브라우저 실행, 페이지 설정, raw HTML 콘텐츠 가져오기 등의 반복적인 작업을 처리하는 헬퍼 모듈입니다. `serviceConfig.js`에서 설정을 읽어 사용하며, OS별 기본 Chrome 경로를 제공하고 환경 변수를 통해 설정을 재정의할 수 있도록 합니다.
+    *   **`chromePathFinder.js`**: 시스템에 설치된 Google Chrome의 실행 경로를 찾는 유틸리티 함수를 제공합니다. `serviceConfig.js`에서 Puppeteer의 `executablePath` 기본값을 설정하는 데 사용됩니다.
     *   **`htmlParser.js`**: `cheerio`를 사용하여 HTML 문자열을 파싱하고, 불필요한 태그 제거, 텍스트 콘텐츠 추출 등의 작업을 수행하는 `cleanHtml` 함수를 제공합니다.
 
 ## 3. 🔧 MCP 도구 구현
 
 ### 3.1. 🛠️ `naverSearch` 도구 (`src/tools/naverSearchTool.js`)
 
-*   🎯 **목적**: 사용자가 제공한 검색어(`query`)로 Naver 웹 검색을 수행하고, HTML 태그 포함 여부(`includeHtml`)에 따라 처리된 결과를 반환합니다.
+*   🎯 **목적**: 사용자가 제공한 검색어(`query`)로 Naver 웹 검색을 수행하고, HTML 태그 포함 여부(`includeHtml`)에 따라 처리된 결과를 반환합니다. (내부적으로 `searchService.naverSearch` 호출)
 *   📥 **입력 스키마 (`zod`):**
     ```javascript
     z.object({
@@ -155,7 +172,7 @@ mcp-naver-search-server/
 ## 6. ✨ 새로운 MCP 도구 추가 (예시)
 
 1.  **서비스 로직 정의 (선택 사항, 권장):**
-    *   새로운 비즈니스 로직이 필요하면 `src/services/`에 새 서비스 파일(예: `newFeatureService.js`)을 만들거나 기존 서비스에 함수를 추가합니다.
+    *   새로운 비즈니스 로직이 필요하면 `src/services/`에 새 서비스 파일(예: `newFeatureService.js`)을 만들거나 기존 서비스(`searchService.js`)에 함수를 추가합니다. 이 서비스 함수는 필요에 따라 `createCrawler`를 사용하여 크롤러 인스턴스를 얻고 `getRawHtml`을 호출할 수 있습니다.
 2.  **도구 정의 파일 생성:**
     *   `src/tools/`에 새 JavaScript 파일(예: `myNewTool.js`)을 만듭니다.
     *   `zod`를 사용하여 `inputSchema`를 정의하고, `async handler` 함수 내에 로직을 구현합니다. 핸들러는 필요시 서비스 함수를 호출합니다.

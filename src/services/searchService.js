@@ -1,42 +1,60 @@
 // src/services/searchService.js
-// import { load } from 'cheerio'; // 이제 htmlParser.js에서 사용
 import { serviceConfig } from '../config/serviceConfig.js';
 import logger from '../utils/logger.cjs';
-import { getRawHtml } from '../utils/puppeteerHelper.js'; // Puppeteer 헬퍼 함수 임포트
-import { cleanHtml } from '../utils/htmlParser.js'; // htmlParser 임포트
+import { createCrawler } from '../crawlers/crawlerFactory.js'; // CrawlerFactory 임포트
+import { cleanHtml } from '../utils/htmlParser.js';
+
+// 크롤러 인스턴스를 관리하기 위한 변수.
+// 실제 프로덕션 환경에서는 요청별로 생성하거나,
+// 애플리케이션 레벨에서 싱글톤 또는 풀링 전략을 사용할 수 있습니다.
+// 여기서는 간단하게 함수 호출 시마다 생성/종료하는 방식을 사용합니다.
+// let crawler = null; // 이 방식 대신 각 함수 내에서 생성/종료
 
 /**
- * Google 검색을 수행합니다.
+ * Naver 검색을 수행합니다. (함수명은 naverSearch이지만 내부 로직은 Google을 가리키고 있었음. 주석 참고)
  * @param {string} query - 검색어
  * @param {boolean} includeHtml - 결과에 HTML 태그를 포함할지 여부
  * @returns {Promise<object>} 검색 결과 객체 { query, resultText, retrievedAt }
  * @throws {Error} 검색 중 오류 발생 시
  */
 export const naverSearch = async (query, includeHtml = false) => {
+  // 함수명을 naverSearch로 유지하되, serviceConfig.naverSearch를 사용하도록 명확히 함.
+  // 이전 코드에서 Google search 주석이 있었으나, 설정은 naverSearch를 따르고 있었음.
   logger.info(
-    `[SearchService] Initiating Google search for query: "${query}", includeHtml: ${includeHtml}`,
+    `[SearchService] Initiating Naver search for query: "${query}", includeHtml: ${includeHtml}`,
   );
 
   if (!query || typeof query !== 'string' || query.trim() === '') {
-    logger.error('[SearchService] Invalid query provided.');
+    logger.error('[SearchService] Invalid query provided for Naver search.');
     throw new Error('유효한 검색어를 입력해야 합니다.');
   }
 
   const { baseUrl, referer } = serviceConfig.naverSearch;
   const searchUrl = `${baseUrl}${encodeURIComponent(query)}`;
 
+  let crawlerInstance = null;
   try {
-    logger.info(`[SearchService] Requesting URL via puppeteerHelper: ${searchUrl}`);
-    // puppeteerHelper 사용 시, userAgent, headers 등은 serviceConfig.puppeteer 또는 helper의 기본값 사용
-    const rawHtml = await getRawHtml(searchUrl, { referer }); // Google 검색 시 referer 전달
+    // serviceConfig.crawler에서 크롤러 설정을 가져옴
+    crawlerInstance = await createCrawler(serviceConfig.crawler);
+    logger.info(`[SearchService] Using ${crawlerInstance.constructor.name} for Naver search.`);
 
-    logger.info('[SearchService] Raw HTML received for Google search');
+    // pageOptions 구성
+    const pageOptions = {
+      referer, // Naver 검색 시 사용할 Referer
+      // 필요시 serviceConfig.crawler.type에 따라 waitUntil, timeout 등을 여기서 설정 가능
+      // 예: waitUntil: serviceConfig.crawler[serviceConfig.crawler.type]?.waitUntil
+    };
+
+    logger.info(`[SearchService] Requesting URL via ${crawlerInstance.constructor.name}: ${searchUrl}`);
+    const rawHtml = await crawlerInstance.getRawHtml(searchUrl, pageOptions);
+
+    logger.info('[SearchService] Raw HTML received for Naver search');
     const resultText = cleanHtml(rawHtml, includeHtml);
-    logger.debug('[SearchService] Cleaned Google search result text:', resultText.substring(0, 200));
+    logger.debug('[SearchService] Cleaned Naver search result text:', resultText.substring(0, 200));
     const retrievedAt = new Date().toISOString();
 
     logger.info(
-      `[SearchService] Successfully retrieved and processed Google search results for query: "${query}"`,
+      `[SearchService] Successfully retrieved and processed Naver search results for query: "${query}"`,
     );
 
     return {
@@ -46,11 +64,15 @@ export const naverSearch = async (query, includeHtml = false) => {
     };
   } catch (error) {
     logger.error(
-      `[SearchService] Error during Google search for query "${query}": ${error.message}`,
+      `[SearchService] Error during Naver search for query "${query}": ${error.message}`,
       { stack: error.stack },
     );
-    // puppeteerHelper에서 발생한 특정 오류 메시지를 그대로 전달하거나, 여기서 추가 처리 가능
-    throw error; // 에러를 다시 throw하여 상위 핸들러에서 처리
+    throw error;
+  } finally {
+    if (crawlerInstance) {
+      await crawlerInstance.close();
+      logger.info(`[SearchService] ${crawlerInstance.constructor.name} instance closed after Naver search.`);
+    }
   }
 };
 
@@ -64,19 +86,26 @@ export const fetchUrlContent = async (url) => {
   logger.info(`[SearchService] Initiating content fetch for URL: "${url}"`);
 
   if (!url || typeof url !== 'string' || !url.startsWith('http')) {
-    logger.error('[SearchService] Invalid URL provided.');
+    logger.error('[SearchService] Invalid URL provided for content fetch.');
     throw new Error('유효한 URL을 입력해야 합니다 (예: http://example.com).');
   }
 
+  let crawlerInstance = null;
   try {
-    logger.info(`[SearchService] Requesting URL via puppeteerHelper: ${url}`);
-    // 특정 페이지 옵션이 필요 없다면 getRawHtml(url) 만 호출
-    // 예: User-Agent나 특정 헤더를 이 URL에만 다르게 적용하고 싶다면 pageOptions으로 전달
-    const rawHtml = await getRawHtml(url); // 기본 설정으로 URL 내용 가져오기
+    crawlerInstance = await createCrawler(serviceConfig.crawler);
+    logger.info(`[SearchService] Using ${crawlerInstance.constructor.name} for URL fetch.`);
+
+    // fetchUrlContent는 특정 pageOptions이 크게 필요 없을 수 있으나, 필요시 여기에 추가
+    // const pageOptions = {
+    //   userAgent: 'MyCustomAgent/1.0', // 예시
+    // };
+    // const rawHtml = await crawlerInstance.getRawHtml(url, pageOptions);
+
+    logger.info(`[SearchService] Requesting URL via ${crawlerInstance.constructor.name}: ${url}`);
+    const rawHtml = await crawlerInstance.getRawHtml(url); // 기본 옵션으로 호출
 
     logger.info('[SearchService] Raw HTML received from URL');
-    // fetchUrlContent는 항상 HTML 태그를 제거하고 텍스트만 반환하므로 includeHtml=false 와 동일하게 처리
-    const textContent = cleanHtml(rawHtml, false);
+    const textContent = cleanHtml(rawHtml, false); // 항상 HTML 태그 제거
     logger.debug('[SearchService] Cleaned text content from URL:', textContent.substring(0, 500));
     const retrievedAt = new Date().toISOString();
 
@@ -94,8 +123,11 @@ export const fetchUrlContent = async (url) => {
       `[SearchService] Error during content fetch for URL "${url}": ${error.message}`,
       { stack: error.stack },
     );
-    // puppeteerHelper에서 발생한 특정 오류 메시지를 그대로 전달하거나, 여기서 추가 처리 가능
-    // 예를 들어, "URL을 찾을 수 없습니다" 또는 "URL 요청 시간 초과" 등의 메시지는 puppeteerHelper에서 이미 생성됨
-    throw error; // 에러를 다시 throw하여 상위 핸들러에서 처리
+    throw error;
+  } finally {
+    if (crawlerInstance) {
+      await crawlerInstance.close();
+      logger.info(`[SearchService] ${crawlerInstance.constructor.name} instance closed after URL fetch.`);
+    }
   }
 };
