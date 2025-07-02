@@ -1,13 +1,13 @@
 // src/tools/index.js
-import { googleSearchTool } from './googleSearchTool.js';
+import { naverSearchTool as naverSearchTool } from './naverSearchTool.js';
 import { urlFetcherTool } from './urlFetcherTool.js'; // 새 도구 가져오기
 // 다른 도구들이 있다면 여기에 추가
 // import { anotherTool } from './anotherTool.js';
 
 export const tools = [
   {
-    ...googleSearchTool,
-    description: `google web search`, // 기존 도구 설명 유지 또는 수정
+    ...naverSearchTool,
+    description: `naver web search`, // 기존 도구 설명 유지 또는 수정
   },
   {
     ...urlFetcherTool,

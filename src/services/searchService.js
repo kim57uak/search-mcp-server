@@ -12,7 +12,7 @@ import { cleanHtml } from '../utils/htmlParser.js'; // htmlParser 임포트
  * @returns {Promise<object>} 검색 결과 객체 { query, resultText, retrievedAt }
  * @throws {Error} 검색 중 오류 발생 시
  */
-export const googleSearch = async (query, includeHtml = false) => {
+export const naverSearch = async (query, includeHtml = false) => {
   logger.info(
     `[SearchService] Initiating Google search for query: "${query}", includeHtml: ${includeHtml}`,
   );
@@ -22,7 +22,7 @@ export const googleSearch = async (query, includeHtml = false) => {
     throw new Error('유효한 검색어를 입력해야 합니다.');
   }
 
-  const { baseUrl, referer } = serviceConfig.googleSearch;
+  const { baseUrl, referer } = serviceConfig.naverSearch;
   const searchUrl = `${baseUrl}${encodeURIComponent(query)}`;
 
   try {

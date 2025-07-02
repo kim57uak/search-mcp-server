@@ -50,21 +50,18 @@ export async function getRawHtml(url, pageOptions = {}) {
       await page.setUserAgent(serviceConfig.puppeteer.userAgent || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
     }
 
+    let headers;
     if (pageOptions.extraHeaders) {
-      await page.setExtraHTTPHeaders(pageOptions.extraHeaders);
+      headers = { ...pageOptions.extraHeaders };
     } else {
-      await page.setExtraHTTPHeaders(serviceConfig.puppeteer.defaultHeaders || {
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-        'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
-        'Connection': 'keep-alive',
-      });
+      headers = { ...serviceConfig.puppeteer.defaultHeaders };
     }
 
     const referer = pageOptions.referer; // Referer는 URL마다 다를 수 있으므로 pageOptions에서 받도록 함
     if (referer) {
-      await page.setExtraHTTPHeaders({ ...page.extraHTTPHeaders(), 'Referer': referer });
+      headers['Referer'] = referer;
     }
-
+    await page.setExtraHTTPHeaders(headers);
 
     logger.info(`[PuppeteerHelper] Navigating to URL: ${url}`);
     await page.goto(url, {
