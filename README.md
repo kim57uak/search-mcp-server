@@ -88,6 +88,38 @@ MCP SDK는 `package.json` 파일에 프로젝트 종속성으로 나열되어 �
     }
     ```
 
+### 4. `nateSearch`
+
+*   **설명:** Nate 웹 검색을 수행하고 결과를 반환합니다. HTML 태그 포함 여부를 선택할 수 있습니다.
+*   **입력 (`inputs`):**
+    *   `query` (string, 필수): 검색할 단어나 문장입니다. (공백만으로는 안됨)
+    *   `includeHtml` (boolean, 선택, 기본값: `false`): `true`로 설정하면 결과에 HTML 태그를 포함하고, `false`이면 제거된 텍스트만 반환합니다.
+*   **예상 출력 (MCP 응답의 `result.content[0].text` 내부 JSON 문자열):**
+    ```json
+    {
+      "query": "검색어",
+      "resultText": "Nate 검색 결과 내용 (HTML 포함 또는 제거됨)",
+      "retrievedAt": "YYYY-MM-DDTHH:mm:ss.sssZ",
+      "searchEngine": "nate"
+    }
+    ```
+
+### 5. `integratedSearch`
+
+*   **설명:** Naver, Daum, Bing, Nate 검색 엔진에서 동시에 검색을 수행하고 통합된 결과를 반환합니다. HTML 태그 포함 여부를 선택할 수 있습니다.
+*   **입력 (`inputs`):**
+    *   `query` (string, 필수): 검색할 단어나 문장입니다. (공백만으로는 안됨)
+    *   `includeHtml` (boolean, 선택, 기본값: `false`): `true`로 설정하면 결과에 HTML 태그를 포함하고, `false`이면 제거된 텍스트만 반환합니다.
+*   **예상 출력 (MCP 응답의 `result.content[0].text` 내부 JSON 문자열):**
+    ```json
+    {
+      "query": "검색어",
+      "resultText": "Bing 검색 결과 내용 (HTML 포함 또는 제거됨)",
+      "retrievedAt": "YYYY-MM-DDTHH:mm:ss.sssZ",
+      "searchEngine": "bing"
+    }
+    ```
+
 ### 4. `integratedSearch`
 
 *   **설명:** Naver, Daum, Bing 검색 엔진에서 동시에 검색을 수행하고 통합된 결과를 반환합니다. HTML 태그 포함 여부를 선택할 수 있습니다.
@@ -116,12 +148,18 @@ MCP SDK는 `package.json` 파일에 프로젝트 종속성으로 나열되어 �
           "resultText": "Bing 검색 결과 내용...",
           "retrievedAt": "YYYY-MM-DDTHH:mm:ss.sssZ",
           "searchEngine": "bing" // searchService에서 추가됨
+        },
+        {
+          "query": "검색어",
+          "resultText": "Nate 검색 결과 내용...",
+          "retrievedAt": "YYYY-MM-DDTHH:mm:ss.sssZ",
+          "searchEngine": "nate" // searchService에서 추가됨
         }
         // 또는 검색 실패 시
         // {
-        //   "error": "Naver search failed",
+        //   "error": "Nate search failed",
         //   "details": "오류 상세 메시지",
-        //   "searchEngine": "naver"
+        //   "searchEngine": "nate"
         // }
       ],
       "retrievedAt": "YYYY-MM-DDTHH:mm:ss.sssZ"
@@ -139,7 +177,7 @@ MCP SDK는 `package.json` 파일에 프로젝트 종속성으로 나열되어 �
     }
     ```
 
-### 5. `fetchUrl` (기존 `urlFetcherTool`에 해당)
+### 6. `fetchUrl` (기존 `urlFetcherTool`에 해당)
 
 *   **설명:** 주어진 URL의 웹 페이지 내용을 가져와 텍스트 콘텐츠를 반환합니다.
 *   **입력 (`inputs`):**

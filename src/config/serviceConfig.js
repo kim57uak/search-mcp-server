@@ -9,6 +9,9 @@ const DAUM_SEARCH_BASE_URL = // Daum 검색 URL 추가
   'https://search.daum.net/search?w=tot&DA=YZR&t__nil_searchbox=btn&sug=&sugo=&sq=&o=&q=';
 const BING_SEARCH_BASE_URL =
   process.env.BING_SEARCH_BASE_URL || 'https://www.bing.com/search?q=';
+const NATE_SEARCH_BASE_URL =
+  process.env.NATE_SEARCH_BASE_URL ||
+  'https://search.daum.net/nate?w=tot&DA=SBC&q=';
 
 // 환경 변수 getter 함수 (타입 변환 및 기본값 처리)
 const getEnv = (key, defaultValue, type = 'string') => {
@@ -48,6 +51,14 @@ export const serviceConfig = {
     baseUrl: BING_SEARCH_BASE_URL,
     defaultParams: {},
     referer: getEnv('BING_SEARCH_REFERER', 'https://www.bing.com/'),
+  },
+  nateSearch: {
+    baseUrl: NATE_SEARCH_BASE_URL,
+    defaultParams: {
+      // Nate 검색에 필요한 기본 파라미터가 있다면 추가
+      // 예: DA: SBC 등은 URL에 이미 포함되어 있음
+    },
+    referer: getEnv('NATE_SEARCH_REFERER', 'https://search.nate.com/'), // Nate 검색 시 사용할 Referer (nate.com 메인 등)
   },
   crawler: {
     // 사용할 크롤러 유형: 'puppeteer' 또는 'selenium'

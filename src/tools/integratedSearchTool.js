@@ -6,9 +6,8 @@ import logger from '../utils/logger.cjs';
 export const integratedSearchTool = {
   name: 'integratedSearch',
   description:
-    'Naver, Daum, Bing 검색 엔진에서 동시에 검색을 수행하고 통합된 결과를 반환합니다. HTML 태그 포함 여부를 선택할 수 있습니다.',
-  inputSchema: {
-    // inputSchema는 객체여야 합니다.
+    'Naver, Daum, Bing, Nate 검색 엔진에서 동시에 검색을 수행하고 통합된 결과를 반환합니다. HTML 태그 포함 여부를 선택할 수 있습니다.', // Nate 추가
+  inputSchema: z.object({ // z.object로 감싸줍니다.
     query: z.string().min(1, { message: '검색어(query)는 필수입니다.' }),
     includeHtml: z.boolean().optional().default(false), // 기본값은 HTML 태그 제거
   },

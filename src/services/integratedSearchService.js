@@ -1,5 +1,5 @@
 // src/services/integratedSearchService.js
-import { naverSearch, daumSearch, bingSearch } from './searchService.js';
+import { naverSearch, daumSearch, bingSearch, nateSearch } from './searchService.js'; // nateSearch 추가
 import logger from '../utils/logger.cjs';
 
 /**
@@ -23,7 +23,7 @@ export const integratedSearch = async (query, includeHtml = false) => {
   // }
 
   try {
-    const [naverResults, daumResults, bingResults] = await Promise.all([
+    const searchPromises = [
       naverSearch(query, includeHtml).catch((err) => {
         logger.error(`[IntegratedSearchService] Naver search failed: ${err.message}`);
         return { error: 'Naver search failed', details: err.message, searchEngine: 'naver' };
@@ -36,18 +36,19 @@ export const integratedSearch = async (query, includeHtml = false) => {
         logger.error(`[IntegratedSearchService] Bing search failed: ${err.message}`);
         return { error: 'Bing search failed', details: err.message, searchEngine: 'bing' };
       }),
-    ]);
+      nateSearch(query, includeHtml).catch((err) => { // Nate 검색 추가
+        logger.error(`[IntegratedSearchService] Nate search failed: ${err.message}`);
+        return { error: 'Nate search failed', details: err.message, searchEngine: 'nate' };
+      }),
+    ];
 
+    const results = await Promise.all(searchPromises);
     const retrievedAt = new Date().toISOString();
 
     // 각 결과에 searchEngine 필드가 이미 searchService에서 추가되므로, 여기서는 집계만 수행
     const integratedResult = {
       query,
-      results: [
-        naverResults,
-        daumResults,
-        bingResults,
-      ],
+      results, // Promise.all 결과 배열을 그대로 사용
       retrievedAt,
     };
 
