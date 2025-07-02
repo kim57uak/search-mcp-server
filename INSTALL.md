@@ -19,15 +19,24 @@
     ```
     또는 프로젝트 소스 코드를 다운로드하고 압축을 해제합니다.
 
-2.  **의존성 설치:**
+## 2. 의존성 설치 (모든 Node.js 패키지)
 
-    프로젝트 루트 디렉토리에서 다음 명령어를 실행하여 필요한 모든 Node.js 라이브러리를 설치합니다:
+프로젝트를 실행하는 데 필요한 모든 Node.js 패키지(라이브러리)는 `package.json` 파일에 정의되어 있습니다. 다음 **단일 명령어**를 프로젝트 루트 디렉토리에서 실행하면, 이 모든 의존성이 한 번에 `node_modules`라는 폴더에 설치됩니다. 이는 Node.js 프로젝트의 표준적인 의존성 관리 방법입니다.
+
     ```bash
     npm install
     ```
-    이 과정에서 `@modelcontextprotocol/sdk`, `puppeteer`, `puppeteer-extra`, `selenium-webdriver`, `cheerio` 등 `package.json`에 명시된 모든 패키지가 `node_modules` 디렉토리에 설치됩니다.
 
-    **중요:** 웹 크롤러(Puppeteer 또는 Selenium)를 사용하기 위해서는 추가 설정이 필요할 수 있습니다. 아래 "크롤러 설정 및 설치 안내" 섹션을 참조하세요.
+이 명령어를 실행하면 다음과 같은 주요 패키지를 포함하여 `package.json`의 `dependencies` 및 `devDependencies`에 명시된 모든 패키지가 설치됩니다:
+*   `@modelcontextprotocol/sdk`: MCP 서버 및 도구 개발을 위한 핵심 SDK
+*   `puppeteer`, `puppeteer-extra`, `puppeteer-extra-plugin-stealth`: Puppeteer 기반 웹 크롤링용
+*   `selenium-webdriver`: Selenium 기반 웹 크롤링용
+*   `cheerio`: HTML 파싱용
+*   `winston`: 로깅용
+*   `zod`: 데이터 유효성 검사용
+*   기타 개발 및 실행에 필요한 유틸리티들
+
+**참고:** 웹 크롤러(Puppeteer 또는 Selenium)를 실제로 사용하기 위해서는 Node.js 패키지 설치 외에 각 크롤러에 맞는 브라우저 및 WebDriver 설정이 필요할 수 있습니다. 자세한 내용은 아래 "크롤러 설정 및 설치 안내" 섹션을 참조하세요.
 
 ## 실행 방법
 

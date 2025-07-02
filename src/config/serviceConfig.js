@@ -3,6 +3,8 @@ import { findChromePath } from '../utils/chromePathFinder.js';
 
 const NAVER_SEARCH_BASE_URL =
   process.env.NAVER_SEARCH_BASE_URL || 'https://search.naver.com/search.naver?ie=utf8&query=';
+const DAUM_SEARCH_BASE_URL = // Daum 검색 URL 추가
+  process.env.DAUM_SEARCH_BASE_URL || 'https://search.daum.net/search?w=tot&DA=YZR&t__nil_searchbox=btn&sug=&sugo=&sq=&o=&q=';
 
 // 환경 변수 getter 함수 (타입 변환 및 기본값 처리)
 const getEnv = (key, defaultValue, type = 'string') => {
@@ -28,10 +30,14 @@ export const serviceConfig = {
     defaultParams: {
       // 예: hl: 'ko'
     },
-    // 네이버 검색 시 Referer는 네이버 자체 또는 비워두는 것이 나을 수 있습니다.
-    // Google Referer는 Google 검색 시에만 의미가 있습니다.
-    // referer: 'https://search.naver.com/',
     referer: getEnv('NAVER_SEARCH_REFERER', 'https://search.naver.com/'),
+  },
+  daumSearch: { // Daum 검색 설정 추가
+    baseUrl: DAUM_SEARCH_BASE_URL,
+    defaultParams: {
+      // Daum 검색에 필요한 기본 파라미터가 있다면 추가
+    },
+    referer: getEnv('DAUM_SEARCH_REFERER', 'https://search.daum.net/'), // Daum 검색 시 사용할 Referer
   },
   crawler: {
     // 사용할 크롤러 유형: 'puppeteer' 또는 'selenium'
@@ -62,8 +68,6 @@ export const serviceConfig = {
       headless: getEnv('SELENIUM_HEADLESS', true, 'boolean'),
       args: getEnv('SELENIUM_ARGS', [], 'array'), // 예: ['--window-size=1920,1080']
       userAgent: getEnv('SELENIUM_USER_AGENT', 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Selenium/4.0'), // Selenium용 기본 UserAgent
-      // defaultHeaders는 Selenium에서 설정이 제한적이므로 puppeteer와 동일하게 두거나 단순화
-      // pageOptions 통해 전달되는 헤더는 SeleniumCrawler에서 경고와 함께 일부 무시될 수 있음
       defaultHeaders: {
         'Accept-Language': 'ko-KR,ko;q=0.9,en-US;q=0.8,en;q=0.7',
       },

@@ -4,7 +4,7 @@
 
 ## 1. 📖 프로젝트 개요
 
-MCP Naver Search Server는 모델 컨텍스트 프로토콜(MCP) SDK를 사용하여 구축된 Node.js 애플리케이션입니다. Naver 웹 검색 기능을 수행하는 MCP 도구(`naverSearchTool`)와 특정 URL의 콘텐츠를 가져오는 도구(`urlFetcherTool`)를 노출합니다. 이 서버는 웹 크롤링 작업에 Puppeteer 또는 Selenium을 선택적으로 사용할 수 있도록 유연하게 설계되었으며, 유지보수성과 확장성을 보장하기 위해 SOLID 원칙을 염두에 두고 개발되었습니다.
+MCP Naver Search Server는 모델 컨텍스트 프로토콜(MCP) SDK를 사용하여 구축된 Node.js 애플리케이션입니다. Naver 웹 검색 기능을 수행하는 MCP 도구(`naverSearchTool`), Daum 웹 검색 기능을 수행하는 MCP 도구(`daumSearchTool`)와 특정 URL의 콘텐츠를 가져오는 도구(`urlFetcherTool`)를 노출합니다. 이 서버는 웹 크롤링 작업에 Puppeteer 또는 Selenium을 선택적으로 사용할 수 있도록 유연하게 설계되었으며, 유지보수성과 확장성을 보장하기 위해 SOLID 원칙을 염두에 두고 개발되었습니다.
 
 서버는 모델 컨텍스트 프로토콜(MCP) SDK (`@modelcontextprotocol/sdk`)를 사용하여 구축되었습니다. 이 SDK는 프로젝트의 핵심 종속성이며, `package.json` 파일을 통해 관리되고 표준 `npm install` 프로세스의 일부로 설치됩니다. MCP 호환 서비스 및 도구를 만들고 관리하는 데 필요한 도구와 인터페이스를 제공합니다.
 
@@ -16,7 +16,7 @@ mcp-naver-search-server/
 ├── logs/                  # 로그 파일 (gitignored)
 ├── src/                   # 소스 코드
 │   ├── config/            # 설정 파일
-│   │   └── serviceConfig.js # 서비스별 설정 (Naver 검색, 크롤러 설정 등)
+│   │   └── serviceConfig.js # 서비스별 설정 (Naver/Daum 검색, 크롤러 설정 등)
 │   ├── crawlers/          # 웹 크롤러 구현체 및 팩토리
 │   │   ├── puppeteerCrawler.js # Puppeteer 기반 크롤러
 │   │   ├── seleniumCrawler.js  # Selenium 기반 크롤러
@@ -26,6 +26,7 @@ mcp-naver-search-server/
 │   ├── server.js          # 주 서버 초기화 및 MCP 요청 처리 (Stdio 기반)
 │   ├── tools/             # MCP 도구 정의
 │   │   ├── naverSearchTool.js # Naver 검색 도구
+│   │   ├── daumSearchTool.js   # Daum 검색 도구
 │   │   ├── urlFetcherTool.js   # URL 콘텐츠 가져오기 도구
 │   │   └── index.js       # 모든 도구 내보내기
 │   ├── services/          # 비즈니스 로직 모듈
@@ -50,7 +51,7 @@ mcp-naver-search-server/
 
 *   📄 **`src/server.js`**:
     *   `@modelcontextprotocol/sdk`에서 `McpServer` 인스턴스를 초기화합니다.
-    *   `src/tools/index.js`에서 모든 도구 정의(예: `naverSearchTool`, `fetchUrlTool`)를 가져옵니다.
+    *   `src/tools/index.js`에서 모든 도구 정의(예: `naverSearchTool`, `daumSearchTool`, `fetchUrlTool`)를 가져옵니다.
     *   가져온 도구들을 MCP 서버에 등록합니다.
     *   `src/transports/stdioTransport.js`에서 생성된 `StdioServerTransport`를 사용하여 MCP 서버를 연결합니다.
     *   서버는 표준 입출력(stdio)을 통해 MCP 요청을 수신하고 응답합니다.
@@ -58,12 +59,14 @@ mcp-naver-search-server/
 
 *   🛠️ **`src/tools/`**:
     *   **`naverSearchTool.js`**: `naverSearch` MCP 도구를 정의합니다. (상세 설명은 아래 섹션 참조)
+    *   **`daumSearchTool.js`**: `daumSearch` MCP 도구를 정의합니다. (상세 설명은 아래 섹션 참조)
     *   **`urlFetcherTool.js`**: `fetchUrl` MCP 도구를 정의합니다. (상세 설명은 아래 섹션 참조)
     *   **`index.js`**: 모든 도구 정의를 집계하고 배열로 내보내 `server.js`가 사용하도록 합니다.
 
 *   ⚙️ **`src/config/serviceConfig.js`**:
     *   `searchService.js` 및 크롤러(`PuppeteerCrawler`, `SeleniumCrawler`)를 위한 설정을 중앙에서 관리합니다.
     *   Naver 검색을 위한 `baseUrl`, `referer` 등을 포함합니다.
+    *   Daum 검색을 위한 `baseUrl`, `referer` 등을 포함합니다.
     *   **크롤러 설정 (`crawler`)**:
         *   `type`: 사용할 크롤러 유형 (`'puppeteer'` 또는 `'selenium'`). 환경 변수 `CRAWLER_TYPE`으로 제어.
         *   `puppeteer`: Puppeteer 관련 설정 (예: `executablePath`, `headless`, `args`, `userAgent`, `timeout` 등). 환경 변수 `PUPPETEER_*` 시리즈로 제어.
@@ -71,12 +74,13 @@ mcp-naver-search-server/
     *   애플리케이션 환경(`NODE_ENV`) 정보도 포함합니다.
 
 *   📦 **`src/services/searchService.js`**:
-    *   Naver 검색 수행 및 지정된 URL의 콘텐츠 가져오기와 관련된 비즈니스 로직을 담당합니다.
+    *   Naver 검색, Daum 검색 수행 및 지정된 URL의 콘텐츠 가져오기와 관련된 비즈니스 로직을 담당합니다.
     *   `src/crawlers/crawlerFactory.js`의 `createCrawler` 함수를 사용하여 현재 설정에 맞는 크롤러(Puppeteer 또는 Selenium) 인스턴스를 동적으로 생성합니다.
     *   생성된 크롤러 인스턴스의 `getRawHtml` 메서드를 호출하여 웹 페이지의 raw HTML을 가져옵니다.
     *   `src/utils/htmlParser.js`의 `cleanHtml` 함수를 사용하여 HTML에서 불필요한 태그를 제거하고 텍스트 콘텐츠를 추출합니다.
-    *   `naverSearch(query, includeHtml)` 함수는 검색 결과를 가져와 처리하고, `{ query, resultText, retrievedAt }` 형태의 객체를 반환합니다.
-    *   `fetchUrlContent(url)` 함수는 지정된 URL의 텍스트 콘텐츠를 가져와 처리하고, `{ url, textContent, retrievedAt }` 형태의 객체를 반환합니다.
+    *   `naverSearch(query, includeHtml)` 함수는 Naver 검색 결과를 가져와 처리합니다.
+    *   `daumSearch(query, includeHtml)` 함수는 Daum 검색 결과를 가져와 처리합니다.
+    *   `fetchUrlContent(url)` 함수는 지정된 URL의 텍스트 콘텐츠를 가져와 처리합니다.
     *   각 함수 실행 후 크롤러 인스턴스의 `close()` 메서드를 호출하여 리소스를 정리합니다.
 
 *   🔩 **`src/crawlers/`**:
@@ -119,7 +123,32 @@ mcp-naver-search-server/
     }
     ```
 
-### 3.2. 🛠️ `fetchUrl` 도구 (`src/tools/urlFetcherTool.js`)
+### 3.2. 🛠️ `daumSearch` 도구 (`src/tools/daumSearchTool.js`)
+
+*   🎯 **목적**: 사용자가 제공한 검색어(`query`)로 Daum 웹 검색을 수행하고, HTML 태그 포함 여부(`includeHtml`)에 따라 처리된 결과를 반환합니다. (내부적으로 `searchService.daumSearch` 호출)
+*   📥 **입력 스키마 (`zod`):**
+    ```javascript
+    z.object({
+      query: z.string().min(1, { message: "검색어(query)는 필수입니다." }),
+      includeHtml: z.boolean().optional().default(false),
+    })
+    ```
+*   🧠 **핸들러 로직:**
+    1.  `logger.cjs`를 사용하여 함수 실행 정보, 입력 파라미터, 결과 및 오류를 기록합니다.
+    2.  입력으로 받은 `query`와 `includeHtml` 값을 `searchService.daumSearch` 함수에 전달하여 호출합니다.
+    3.  `searchService`로부터 받은 결과 객체를 JSON 문자열로 변환하여 MCP 콘텐츠 구조(`{ type: "text", text: "..." }`)로 포맷합니다.
+    4.  성공 시 포맷된 콘텐츠를 반환하고, 예외 발생 시 오류를 전파하여 `server.js`의 오류 처리기에서 처리하도록 합니다.
+*   ✅ **출력 (성공 시 MCP 응답의 `result.content[0].text` 내부 JSON 구조 예시):**
+    ```json
+    {
+      "query": "사용자 검색어",
+      "resultText": "Daum 검색 결과 (HTML 태그 포함 또는 제거됨)",
+      "retrievedAt": "2024-01-01T12:00:00.000Z",
+      "searchEngine": "daum"
+    }
+    ```
+
+### 3.3. 🛠️ `fetchUrl` 도구 (`src/tools/urlFetcherTool.js`)
 
 *   🎯 **목적**: 사용자가 제공한 URL의 웹 페이지 콘텐츠를 가져와 주요 텍스트 내용을 추출하여 반환합니다.
 *   📜 **설명**: `특정 url 접근을 통한 웹 컨텐츠 검색`
@@ -147,27 +176,35 @@ mcp-naver-search-server/
 
 애플리케이션 설정은 `src/config/serviceConfig.js`에서 중앙 관리됩니다. 환경 변수를 통해 다양한 설정을 재정의할 수 있습니다. (자세한 내용은 [INSTALL.md](INSTALL.md) 및 `src/config/serviceConfig.js` 주석 참조)
 
-*   **Naver 검색 관련**: `NAVER_SEARCH_BASE_URL` 등 (예시, 실제 변수명은 `serviceConfig.js` 확인 필요)
-*   **Puppeteer 관련**:
-    *   `PUPPETEER_EXECUTABLE_PATH`: Chrome/Chromium 실행 파일 경로. 설정하지 않으면 OS별 기본 경로를 사용합니다.
-        *   **Windows 예시**: `C:\Program Files\Google\Chrome\Application\chrome.exe`
-        *   **macOS 예시**: `/Applications/Google Chrome.app/Contents/MacOS/Google Chrome`
-        *   **Linux 예시**: `/usr/bin/google-chrome`
+*   **Naver 검색 관련**: `NAVER_SEARCH_BASE_URL`, `NAVER_SEARCH_REFERER`
+*   **Daum 검색 관련**: `DAUM_SEARCH_BASE_URL`, `DAUM_SEARCH_REFERER`
+*   **크롤러 선택**:
+    *   `CRAWLER_TYPE`: 사용할 크롤러를 지정합니다 (`'puppeteer'` 또는 `'selenium'`). 기본값은 `'puppeteer'`입니다.
+*   **Puppeteer 관련 (`crawler.puppeteer`)**:
+    *   `PUPPETEER_EXECUTABLE_PATH`: Chrome/Chromium 실행 파일 경로.
     *   `PUPPETEER_HEADLESS`: `true` 또는 `false`. 기본값 `true`.
     *   `PUPPETEER_ARGS`: Puppeteer 실행 인자 (쉼표로 구분).
     *   `PUPPETEER_USER_AGENT`: 사용할 User-Agent 문자열.
     *   `PUPPETEER_WAIT_UNTIL`: 페이지 로드 대기 조건 (예: `networkidle2`).
     *   `PUPPETEER_TIMEOUT`: 페이지 로드 타임아웃 (밀리초 단위).
+*   **Selenium 관련 (`crawler.selenium`)**:
+    *   `SELENIUM_BROWSER`: 사용할 브라우저 (예: `'chrome'`, `'firefox'`). 기본값 `'chrome'`.
+    *   `SELENIUM_DRIVER_PATH`: 해당 브라우저의 WebDriver 실행 파일 경로.
+    *   `SELENIUM_HEADLESS`: `true` 또는 `false`. 기본값 `true`.
+    *   `SELENIUM_ARGS`: Selenium 브라우저 드라이버 추가 인자 (쉼표로 구분).
+    *   `SELENIUM_USER_AGENT`: 사용할 User-Agent 문자열.
+    *   `SELENIUM_PAGE_LOAD_TIMEOUT`: 페이지 로드 타임아웃 (밀리초 단위).
+    *   `SELENIUM_SCRIPT_TIMEOUT`: 스크립트 실행 타임아웃 (밀리초 단위).
 *   **실행 환경**: `NODE_ENV` (예: `development`, `production`)
 
 ## 5. 💪 SOLID 원칙 적용
 
 서버는 SOLID 원칙을 준수하는 것을 목표로 합니다:
 
-*   🎯 **단일 책임 원칙 (SRP)**: 각 모듈(예: `server.js`, `googleSearchTool.js`, `urlFetcherTool.js`, `searchService.js`, `puppeteerHelper.js`, `htmlParser.js`, `serviceConfig.js`, `logger.cjs`)은 명확히 구분된 책임을 가집니다. `puppeteerHelper.js`는 Puppeteer 관련 작업을, `htmlParser.js`는 HTML 파싱 및 정제 작업을 각각 캡슐화하여 `searchService.js`의 책임을 더욱 명확히 합니다.
-*   🧩 **개방/폐쇄 원칙 (OCP)**: 새로운 MCP 도구를 추가할 때 기존 도구나 서비스 로직을 크게 수정할 필요 없이 `src/tools/`에 새 파일을 추가하고 `src/tools/index.js`에 등록하는 방식으로 확장이 용이합니다. 서비스 로직 및 유틸리티 함수도 유사하게 확장 가능합니다.
-*   🔗 **인터페이스 분리 원칙 (ISP)**: 각 MCP 도구는 명확한 입력 스키마와 출력 형식을 정의하여 클라이언트에게 필요한 최소한의 인터페이스만 제공합니다.
-*   🔌 **의존관계 역전 원칙 (DIP)**: 도구 정의 파일은 구체적인 웹 기술(Puppeteer, Cheerio) 직접 호출 대신 추상화된 `searchService.js`에 의존합니다. `searchService.js`는 다시 `puppeteerHelper.js`와 `htmlParser.js`에 의존하여 세부 구현으로부터 분리됩니다.
+*   🎯 **단일 책임 원칙 (SRP)**: 각 모듈(예: `server.js`, `naverSearchTool.js`, `daumSearchTool.js`, `searchService.js`, `puppeteerCrawler.js`, `seleniumCrawler.js`, `crawlerFactory.js`, `htmlParser.js`, `serviceConfig.js`, `logger.cjs`)은 명확히 구분된 책임을 가집니다. 각 크롤러 구현체는 특정 브라우저 자동화 기술을 캡슐화하고, 팩토리는 이들 중 하나를 선택하는 책임을 집니다.
+*   🧩 **개방/폐쇄 원칙 (OCP)**: 새로운 MCP 도구를 추가할 때 기존 도구나 서비스 로직을 크게 수정할 필요 없이 `src/tools/`에 새 파일을 추가하고 `src/tools/index.js`에 등록하는 방식으로 확장이 용이합니다. 또한, 새로운 유형의 크롤러를 추가해야 할 경우, `WebCrawlerInterface`를 구현하는 새 클래스를 만들고 `crawlerFactory.js`를 수정하여 확장이 가능합니다.
+*   🔗 **인터페이스 분리 원칙 (ISP)**: 각 MCP 도구는 명확한 입력 스키마와 출력 형식을 정의하여 클라이언트에게 필요한 최소한의 인터페이스만 제공합니다. `WebCrawlerInterface`는 크롤러의 핵심 기능(`getRawHtml`)을 정의하여, `searchService`가 구체적인 구현에 의존하지 않도록 합니다.
+*   🔌 **의존관계 역전 원칙 (DIP)**: `searchService.js`는 구체적인 크롤러(`PuppeteerCrawler` 또는 `SeleniumCrawler`)에 직접 의존하는 대신, `crawlerFactory.js`와 추상적인 `WebCrawlerInterface`에 의존합니다. 이를 통해 `searchService.js`는 크롤링 기술의 세부 구현으로부터 분리됩니다.
 
 ## 6. ✨ 새로운 MCP 도구 추가 (예시)
 
@@ -182,7 +219,7 @@ mcp-naver-search-server/
     // src/tools/myNewTool.js
     import { z } from 'zod';
     import logger from '../utils/logger.cjs';
-    // import { myServiceFunction } from '../services/myService.js'; // 필요시
+    // import { myServiceFunction } from '../services/searchService.js'; // 필요시
 
     export const myNewTool = {
       name: "myNewToolName",
@@ -193,7 +230,7 @@ mcp-naver-search-server/
       async handler({ param1 }) {
         logger.info(`Executing myNewToolName with param1: ${param1}`);
         try {
-          // const result = await myServiceFunction(param1);
+          // const result = await myServiceFunction(param1); // 예: searchService의 함수 호출
           const result = { message: `Result for ${param1}` };
           logger.info(`myNewToolName completed successfully.`);
           return {
@@ -210,13 +247,15 @@ mcp-naver-search-server/
     *   `src/tools/index.js`를 열어 새 도구를 가져오고 `tools` 배열에 추가합니다.
     ```javascript
     // src/tools/index.js
-    import { naverSearchTool } from './naverSearchTool.js'; // naverSearchTool로 변경
-    import { urlFetcherTool } from './urlFetcherTool.js'; // urlFetcherTool 추가 (이미 존재한다면 수정 없음)
+    import { naverSearchTool } from './naverSearchTool.js';
+    import { daumSearchTool } from './daumSearchTool.js'; // Daum 도구 추가
+    import { urlFetcherTool } from './urlFetcherTool.js';
     import { myNewTool } from "./myNewTool.js"; // 새 도구 가져오기
 
     export const tools = [
-      naverSearchTool, // naverSearchTool로 변경
-      urlFetcherTool,  // urlFetcherTool 추가 (이미 존재한다면 수정 없음)
+      naverSearchTool,
+      daumSearchTool, // Daum 도구 등록
+      urlFetcherTool,
       myNewTool, // 배열에 추가
     ];
     ```
@@ -226,9 +265,8 @@ mcp-naver-search-server/
 
 서버 실행 지침은 [INSTALL.md](INSTALL.md)를 참조하십시오. Stdio 기반이므로, 서버 실행 후 표준 입력을 통해 JSON 형식으로 MCP 요청을 전송하고 표준 출력을 통해 결과를 확인합니다.
 
-**예시: `naverSearch` 도구 호출 (터미널에서 `request.json` 파일 사용)**
-
-1.  `request.json` 파일 생성:
+**예시: `naverSearch` 도구 호출 (터미널에서 `request_naver.json` 파일 사용)**
+1.  `request_naver.json` 파일 생성:
     ```json
     {
       "tool": "naverSearch",
@@ -236,23 +274,41 @@ mcp-naver-search-server/
         "query": "MCP SDK",
         "includeHtml": true
       },
-      "id": "dev-manual-example-001"
+      "id": "dev-manual-naver-001"
     }
     ```
-2.  `fetchUrl` 도구 호출을 위한 `request_fetch.json` 파일 생성 (예시):
+
+**예시: `daumSearch` 도구 호출 (터미널에서 `request_daum.json` 파일 사용)**
+1.  `request_daum.json` 파일 생성:
+    ```json
+    {
+      "tool": "daumSearch",
+      "inputs": {
+        "query": "오늘 날씨",
+        "includeHtml": false
+      },
+      "id": "dev-manual-daum-001"
+    }
+    ```
+
+**예시: `fetchUrl` 도구 호출 (터미널에서 `request_fetch.json` 파일 사용)**
+1.  `request_fetch.json` 파일 생성:
     ```json
     {
       "tool": "fetchUrl",
       "inputs": {
-        "url": "https://www.naver.com" // 예시 URL 변경
+        "url": "https://www.daum.net"
       },
-      "id": "dev-manual-example-002"
+      "id": "dev-manual-fetch-001"
     }
     ```
-3.  서버 실행 및 요청 전달:
+2.  서버 실행 및 요청 전달:
     ```bash
     # naverSearch 예시
-    npm start < request.json
+    npm start < request_naver.json
+
+    # daumSearch 예시
+    npm start < request_daum.json
 
     # fetchUrl 예시
     npm start < request_fetch.json
@@ -260,8 +316,10 @@ mcp-naver-search-server/
     또는 개발 모드:
     ```bash
     # naverSearch 예시
-    npm run dev < request.json
+    npm run dev < request_naver.json
 
+    # daumSearch 예시
+    npm run dev < request_daum.json
     # fetchUrl 예시
     npm run dev < request_fetch.json
     ```
@@ -274,16 +332,19 @@ mcp-naver-search-server/
 
 *   **SDK 관련 오류:** `@modelcontextprotocol/sdk`의 특정 버전과 호환성 문제가 발생하거나, `McpServer`, `StdioServerTransport` 등의 API가 예상과 다를 경우, SDK 문서를 참조하거나 버전을 확인해야 합니다.
 *   **JSON 입력 오류:** Stdio로 JSON 요청을 전달할 때, JSON 형식이 정확해야 합니다. 형식이 잘못된 경우 서버에서 파싱 오류가 발생할 수 있습니다.
-*   **Puppeteer `executablePath` 오류**: Chrome/Chromium 브라우저를 찾을 수 없는 경우 발생합니다. `PUPPETEER_EXECUTABLE_PATH` 환경 변수를 설정하거나 `src/config/serviceConfig.js` 또는 `src/utils/puppeteerHelper.js`의 기본 경로 설정을 확인하고 사용자의 환경에 맞게 수정해야 합니다.
-*   **웹 페이지 스크래핑 차단**: 일부 웹사이트는 자동화된 접근을 탐지하고 차단할 수 있습니다. `puppeteer-extra-plugin-stealth`가 이를 완화하는 데 도움이 되지만, 완벽하지 않을 수 있습니다. User-Agent 변경, 요청 간 지연 시간 추가 등의 추가 전략이 필요할 수 있습니다.
+*   **크롤러 실행 오류**:
+    *   **Puppeteer `executablePath` 오류**: Chrome/Chromium 브라우저를 찾을 수 없는 경우 발생합니다. `PUPPETEER_EXECUTABLE_PATH` 환경 변수를 설정하거나 `src/config/serviceConfig.js`의 기본 경로 설정을 확인하고 사용자의 환경에 맞게 수정해야 합니다.
+    *   **Selenium `driverPath` 오류**: 지정된 브라우저의 WebDriver(예: chromedriver, geckodriver)를 찾을 수 없는 경우 발생합니다. 시스템 PATH에 WebDriver를 설치하거나 `SELENIUM_DRIVER_PATH` 환경 변수를 통해 정확한 경로를 지정해야 합니다.
+*   **웹 페이지 스크래핑 차단**: 일부 웹사이트는 자동화된 접근을 탐지하고 차단할 수 있습니다. `puppeteer-extra-plugin-stealth` (Puppeteer 사용 시)가 이를 완화하는 데 도움이 되지만, 완벽하지 않을 수 있습니다. User-Agent 변경, 요청 간 지연 시간 추가, 프록시 사용 등의 추가 전략이 필요할 수 있습니다. Selenium의 경우에도 유사한 주의가 필요합니다.
 
 ## 9. 🌱 향후 개선 사항
 
-*   **테스트 커버리지 확대:** Jest를 사용하여 단위 테스트 및 통합 테스트를 철저히 작성합니다.
-*   **`cheerio`를 사용한 HTML 결과 세분화:** `src/utils/htmlParser.js`의 `cleanHtml` 함수에서 `includeHtml=true`일 때, `selector` 옵션을 통해 특정 검색 결과 영역만 추출하는 기능을 더욱 발전시킬 수 있습니다. (현재는 기본적인 selector 기능만 포함)
-*   **Naver Search API 연동 (선택 사항):** 현재는 Naver 웹 페이지를 직접 스크레이핑하는 방식이므로 불안정할 수 있습니다. 안정적인 운영을 위해 Naver Search API 또는 유사한 공식 API 사용을 고려할 수 있습니다. 이 경우 `serviceConfig.js`에 API 키 설정 등이 추가될 것입니다.
-*   **더 정교한 오류 처리:** 사용자 정의 오류 클래스 및 세분화된 오류 코드를 `puppeteerHelper.js`, `htmlParser.js`, `searchService.js` 전반에 도입하여 클라이언트에게 더 명확한 오류 정보를 제공할 수 있습니다.
-*   **Puppeteer 설정 고도화**: 프록시 설정, 쿠키 관리, 요청 인터셉트 등 더 다양한 Puppeteer 옵션을 `serviceConfig.js` 및 `puppeteerHelper.js`를 통해 제어할 수 있도록 확장합니다.
+*   **테스트 커버리지 확대:** Jest를 사용하여 단위 테스트 및 통합 테스트를 철저히 작성합니다. (현재 ES 모듈 모킹 문제로 일부 보류됨)
+*   **`cheerio`를 사용한 HTML 결과 세분화:** `src/utils/htmlParser.js`의 `cleanHtml` 함수에서 `includeHtml=true`일 때, `selector` 옵션을 통해 특정 검색 결과 영역만 추출하는 기능을 더욱 발전시킬 수 있습니다.
+*   **검색 API 연동 (선택 사항):** 현재는 웹 페이지를 직접 스크레이핑하는 방식이므로 불안정할 수 있습니다. 안정적인 운영을 위해 Naver/Daum 검색 API 또는 유사한 공식 API 사용을 고려할 수 있습니다. 이 경우 `serviceConfig.js`에 API 키 설정 등이 추가될 것입니다.
+*   **더 정교한 오류 처리:** 사용자 정의 오류 클래스 및 세분화된 오류 코드를 크롤러 및 서비스 전반에 도입하여 클라이언트에게 더 명확한 오류 정보를 제공할 수 있습니다.
+*   **크롤러 설정 고도화**: 프록시 설정, 쿠키 관리, 요청 인터셉트 등 더 다양한 크롤러 옵션을 `serviceConfig.js` 및 각 크롤러 구현체를 통해 제어할 수 있도록 확장합니다.
+*   **크롤러 인스턴스 관리 전략 개선**: 현재 `searchService.js`에서는 각 요청마다 크롤러 인스턴스를 생성하고 종료합니다. 고성능 환경에서는 크롤러 인스턴스 풀(pool)을 관리하거나 싱글톤으로 사용하는 등의 최적화 전략을 고려할 수 있습니다.
 
 ## cheerio 설치 및 사용 목적
 
@@ -301,7 +362,7 @@ npm install cheerio
 
 ## puppeteer-extra 및 stealth 플러그인 설치
 
-Naver 등에서 자동화 탐지를 우회하기 위해 아래 패키지를 추가로 설치할 수 있습니다.
+Naver 등에서 자동화 탐지를 우회하기 위해 아래 패키지를 추가로 설치할 수 있습니다. (Puppeteer 사용 시)
 
 ### 설치 명령어
 
@@ -311,7 +372,7 @@ npm install puppeteer-extra puppeteer-extra-plugin-stealth
 
 ### 사용 목적
 - puppeteer-extra: puppeteer를 확장하여 다양한 플러그인 적용 가능
-- puppeteer-extra-plugin-stealth: 자동화 탐지(봇 차단) 우회 기능 제공
+- puppeteer-extra-plugin-stealth: 자동화 탐지(봇 차단) 우회 기능 제공 (Puppeteer용)
 
 ## Selenium WebDriver 설치
 
