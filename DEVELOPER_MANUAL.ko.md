@@ -312,3 +312,18 @@ npm install puppeteer-extra puppeteer-extra-plugin-stealth
 ### 사용 목적
 - puppeteer-extra: puppeteer를 확장하여 다양한 플러그인 적용 가능
 - puppeteer-extra-plugin-stealth: 자동화 탐지(봇 차단) 우회 기능 제공
+
+## Selenium WebDriver 설치
+
+Selenium을 사용하기 위해서는 `selenium-webdriver` 라이브러리와 각 브라우저에 맞는 WebDriver가 필요합니다.
+
+### 라이브러리 설치 명령어
+
+```bash
+npm install selenium-webdriver
+```
+
+### WebDriver 설치
+사용하려는 브라우저(Chrome, Firefox 등)에 맞는 WebDriver를 다운로드하여 시스템 PATH에 추가하거나, `SELENIUM_DRIVER_PATH` 환경 변수를 통해 경로를 지정해야 합니다.
+*   **ChromeDriver**: [https://chromedriver.chromium.org/downloads](https://chromedriver.chromium.org/downloads)
+*   **GeckoDriver (Firefox)**: [https://github.com/mozilla/geckodriver/releases](https://github.com/mozilla/geckodriver/releases)
