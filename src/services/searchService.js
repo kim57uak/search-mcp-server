@@ -78,6 +78,62 @@ export const naverSearch = async (query, includeHtml = false) => {
 };
 
 /**
+ * Nate 검색을 수행합니다.
+ * @param {string} query - 검색어
+ * @param {boolean} includeHtml - 결과에 HTML 태그를 포함할지 여부
+ * @returns {Promise<object>} 검색 결과 객체 { query, resultText, retrievedAt, searchEngine: 'nate' }
+ * @throws {Error} 검색 중 오류 발생 시
+ */
+export const nateSearch = async (query, includeHtml = false) => {
+  logger.info(
+    `[SearchService] Initiating Nate search for query: "${query}", includeHtml: ${includeHtml}`,
+  );
+
+  const { baseUrl, referer } = serviceConfig.nateSearch;
+  const searchUrl = `${baseUrl}${encodeURIComponent(query)}`;
+
+  let crawlerInstance = null;
+  try {
+    crawlerInstance = await createCrawler(serviceConfig.crawler);
+    logger.info(`[SearchService] Using ${crawlerInstance.constructor.name} for Nate search.`);
+
+    const pageOptions = {
+      referer, // Nate 검색 시 사용할 Referer
+    };
+
+    logger.info(`[SearchService] Requesting URL via ${crawlerInstance.constructor.name}: ${searchUrl}`);
+    const rawHtml = await crawlerInstance.getRawHtml(searchUrl, pageOptions);
+
+    logger.info('[SearchService] Raw HTML received for Nate search');
+    const resultText = cleanHtml(rawHtml, includeHtml);
+    logger.debug('[SearchService] Cleaned Nate search result text:', resultText.substring(0, 200));
+    const retrievedAt = new Date().toISOString();
+
+    logger.info(
+      `[SearchService] Successfully retrieved and processed Nate search results for query: "${query}"`,
+    );
+
+    return {
+      query,
+      resultText,
+      retrievedAt,
+      searchEngine: 'nate',
+    };
+  } catch (error) {
+    logger.error(
+      `[SearchService] Error during Nate search for query "${query}": ${error.message}`,
+      { stack: error.stack },
+    );
+    throw error;
+  } finally {
+    if (crawlerInstance) {
+      await crawlerInstance.close();
+      logger.info(`[SearchService] ${crawlerInstance.constructor.name} instance closed after Nate search.`);
+    }
+  }
+};
+
+/**
  * Bing 검색을 수행합니다.
  * @param {string} query - 검색어
  * @param {boolean} includeHtml - 결과에 HTML 태그를 포함할지 여부
