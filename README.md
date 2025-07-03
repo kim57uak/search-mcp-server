@@ -177,7 +177,34 @@ MCP SDK는 `package.json` 파일에 프로젝트 종속성으로 나열되어 �
     }
     ```
 
-### 6. `fetchUrl` (기존 `urlFetcherTool`에 해당)
+### 6. `googleSearch`
+
+*   **설명:** Google 검색을 수행하고 "인간처럼" 검색 페이지와 상호작용하여 결과를 가져옵니다. HTML 태그 포함 여부를 선택할 수 있습니다.
+*   **입력 (`inputs`):**
+    *   `query` (string, 필수): 검색할 단어나 문장입니다. (공백만으로는 안됨)
+    *   `includeHtml` (boolean, 선택, 기본값: `false`): `true`로 설정하면 결과에 HTML 태그를 포함하고, `false`이면 제거된 텍스트만 반환합니다.
+*   **예상 출력 (MCP 응답의 `result.content[0].text` 내부 JSON 문자열):**
+    ```json
+    {
+      "query": "검색어",
+      "resultText": "Google 검색 결과 내용 (HTML 포함 또는 제거됨)",
+      "retrievedAt": "YYYY-MM-DDTHH:mm:ss.sssZ",
+      "searchEngine": "google"
+    }
+    ```
+*   **호출 예시 (Stdio - 서버의 표준 입력으로 JSON 전송):**
+    ```json
+    {
+      "tool": "googleSearch",
+      "inputs": {
+        "query": "오늘의 구글 검색",
+        "includeHtml": false
+      },
+      "id": "readme-example-google"
+    }
+    ```
+
+### 7. `fetchUrl` (기존 `urlFetcherTool`에 해당)
 
 *   **설명:** 주어진 URL의 웹 페이지 내용을 가져와 텍스트 콘텐츠를 반환합니다.
 *   **입력 (`inputs`):**
@@ -214,4 +241,47 @@ mcp-naver-search-server/
 ├── nodemon.json       # Nodemon 설정
 ├── package.json
 └── package-lock.json
+
+## 🌐 크롤러 상세: Google 검색 및 CAPTCHA 우회
+
+이 프로젝트의 Google 검색 기능은 `src/crawlers/humanLikeGoogleCrawler.js`에 구현된 특수 크롤러를 사용합니다. 이 크롤러는 Google의 CAPTCHA 및 봇 탐지 메커니즘을 우회하기 위해 다양한 전략을 사용합니다.
+
+### Google 검색 크롤러 (`HumanLikeGoogleCrawler`)
+
+*   **Puppeteer 기반:** 실제 Chrome 브라우저를 제어하는 Puppeteer 라이브러리를 사용하여 웹 페이지와 상호작용합니다. 이를 통해 JavaScript 실행, 사용자 입력 시뮬레이션 등 실제 사용자와 유사한 환경을 구성합니다.
+*   **Stealth 기능:** `puppeteer-extra-plugin-stealth` 플러그인을 사용하여 Puppeteer가 자동화된 브라우저임을 나타내는 다양한 지표(예: `navigator.webdriver` 플래그)를 숨깁니다. 또한 User-Agent, 브라우저 플러그인 정보, 언어 설정 등을 실제 사용자와 유사하게 위장합니다.
+
+### CAPTCHA 우회 및 탐지 회피 전략
+
+Google의 정교한 봇 탐지 시스템에 대응하기 위해 다음과 같은 기법들이 적용되었습니다:
+
+*   **다양한 User-Agent 랜덤 사용:** 미리 정의된 최신 브라우저 User-Agent 목록에서 무작위로 선택하여 사용합니다.
+*   **Viewport 설정:** 일반적인 데스크톱 해상도(예: 1920x1080)로 브라우저 Viewport를 설정하여 일관성을 높입니다.
+*   **인간과 유사한 행동 시뮬레이션:**
+    *   마우스 커서의 자연스러운 이동 및 클릭 위치의 미세한 랜덤 변화.
+    *   검색어 입력 시 실제 타이핑과 유사한 랜덤 딜레이 적용.
+    *   페이지 로드 후 랜덤 스크롤 및 마우스 이동.
+*   **요청 간 랜덤 딜레이:** 페이지 이동, 클릭, 입력 등 주요 작업 전후에 예측 불가능한 랜덤 딜레이를 추가하여 자동화된 패턴을 깨뜨립니다.
+*   **CAPTCHA 감지 시 재시도 로직:**
+    *   "로봇이 아닙니다", "비정상 트래픽" 등의 키워드로 CAPTCHA 페이지를 감지합니다.
+    *   감지 시, 최대 2회까지 재시도를 수행합니다. (총 3회 시도)
+    *   재시도 사이에는 5~10초의 비교적 긴 랜덤 대기 시간을 가집니다.
+
+### 최근 개선 사항
+
+*   **Viewport 설정 추가:** 모든 Google 검색 시 동일한 Viewport(1920x1080)를 사용하도록 설정했습니다.
+*   **딜레이 강화:** 크롤링 과정 전반의 랜덤 딜레이 값을 조정하고 다양성을 높였습니다.
+*   **재시도 로직 개선:** CAPTCHA 발생 시 재시도 횟수를 늘리고, 재시도 간 대기 시간을 증가시켰습니다.
+
+### 한계점 및 주의사항
+
+*   **완벽한 우회는 어려움:** Google의 봇 탐지 알고리즘은 지속적으로 업데이트되므로, 현재 적용된 방법으로도 CAPTCHA가 간헐적으로 발생하거나 향후 다시 문제가 될 수 있습니다.
+*   **IP 주소 평판:** 사용되는 서버의 IP 주소가 과거에 스팸이나 어뷰징에 사용된 적이 있다면 CAPTCHA 발생 빈도가 높아질 수 있습니다. 깨끗한 IP를 사용하는 것이 중요합니다.
+*   **과도한 요청:** 짧은 시간에 너무 많은 요청을 보내면 IP가 차단되거나 CAPTCHA가 더 자주 발생할 수 있습니다. 적절한 요청 간격을 유지해야 합니다.
+
+### 추가 고려 사항 (향후 개선 방향)
+
+*   **프록시 서버 또는 IP 로테이션:** 다양한 IP 주소를 사용하여 요청을 분산시키면 탐지 가능성을 낮출 수 있습니다.
+*   **요청 빈도 제어:** 애플리케이션 레벨에서 전역적인 요청 빈도를 제어하여 특정 시간 동안 보낼 수 있는 요청 수를 제한합니다.
+*   **헤더 및 브라우저 핑거프린트 정교화:** User-Agent 외의 HTTP 헤더(Accept-Language, Accept-Encoding 등)와 브라우저 핑거프린트 요소들을 더욱 실제 사용자와 유사하게 설정합니다.
 ```
