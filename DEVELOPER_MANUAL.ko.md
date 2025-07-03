@@ -16,11 +16,12 @@ mcp-search-server/
 ├── logs/                  # 로그 파일 (gitignored)
 ├── src/                   # 소스 코드
 │   ├── config/            # 설정 파일
-│   │   └── serviceConfig.js # 서비스별 설정 (Naver/Daum/Bing/Nate 검색, 크롤러 설정 등)
+│   │   └── serviceConfig.js # 서비스별 설정 (Naver/Daum/Bing/Nate/Google 검색, 크롤러 설정 등)
 │   ├── crawlers/          # 웹 크롤러 구현체 및 팩토리
-│   │   ├── puppeteerCrawler.js # Puppeteer 기반 크롤러
-│   │   ├── seleniumCrawler.js  # Selenium 기반 크롤러
-│   │   └── crawlerFactory.js   # 크롤러 인스턴스 생성 팩토리
+│   │   ├── puppeteerCrawler.js # Puppeteer 기반 일반 크롤러
+│   │   ├── seleniumCrawler.js  # Selenium 기반 일반 크롤러
+│   │   ├── humanLikeGoogleCrawler.js # Google 검색용 Puppeteer 기반 특수 크롤러
+│   │   └── crawlerFactory.js   # 일반 크롤러 인스턴스 생성 팩토리
 │   ├── interfaces/        # (개념적) 인터페이스 정의 (실제 파일은 없음)
 │   │   └── webCrawlerInterface.js # 웹 크롤러 인터페이스 (문서용)
 │   ├── server.js          # 주 서버 초기화 및 MCP 요청 처리 (Stdio 기반)
@@ -55,7 +56,7 @@ mcp-search-server/
 
 *   📄 **`src/server.js`**:
     *   `@modelcontextprotocol/sdk`에서 `McpServer` 인스턴스를 초기화합니다.
-    *   `src/tools/index.js`에서 모든 도구 정의(예: `naverSearchTool`, `daumSearchTool`, `bingSearchTool`, `nateSearchTool`, `integratedSearchTool`, `fetchUrlTool`)를 가져옵니다.
+    *   `src/tools/index.js`에서 모든 도구 정의(예: `naverSearchTool`, `daumSearchTool`, `bingSearchTool`, `nateSearchTool`, `googleSearchTool`, `integratedSearchTool`, `fetchUrlTool`)를 가져옵니다.
     *   가져온 도구들을 MCP 서버에 등록합니다.
     *   `src/transports/stdioTransport.js`에서 생성된 `StdioServerTransport`를 사용하여 MCP 서버를 연결합니다.
     *   서버는 표준 입출력(stdio)을 통해 MCP 요청을 수신하고 응답합니다.
@@ -66,37 +67,39 @@ mcp-search-server/
     *   **`daumSearchTool.js`**: `daumSearch` MCP 도구를 정의합니다. (상세 설명은 아래 섹션 참조)
     *   **`bingSearchTool.js`**: `bingSearch` MCP 도구를 정의합니다. (상세 설명은 아래 섹션 참조)
     *   **`nateSearchTool.js`**: `nateSearch` MCP 도구를 정의합니다. (상세 설명은 아래 섹션 참조)
+    *   **`googleSearchTool.js`**: `googleSearch` MCP 도구를 정의합니다. Google 검색 시 "인간처럼" 동작하는 특수 크롤러를 사용합니다.
     *   **`integratedSearchTool.js`**: `integratedSearch` MCP 도구를 정의합니다. (상세 설명은 아래 섹션 참조)
     *   **`urlFetcherTool.js`**: `fetchUrl` MCP 도구를 정의합니다. (상세 설명은 아래 섹션 참조)
     *   **`index.js`**: 모든 도구 정의를 집계하고 배열로 내보내 `server.js`가 사용하도록 합니다.
 
 *   ⚙️ **`src/config/serviceConfig.js`**:
-    *   `searchService.js`, `integratedSearchService.js` 및 크롤러(`PuppeteerCrawler`, `SeleniumCrawler`)를 위한 설정을 중앙에서 관리합니다.
-    *   Naver, Daum, Bing, Nate 검색을 위한 `baseUrl`, `referer` 등을 포함합니다.
+    *   `searchService.js`, `integratedSearchService.js` 및 크롤러(`PuppeteerCrawler`, `SeleniumCrawler`, `HumanLikeGoogleCrawler`)를 위한 설정을 중앙에서 관리합니다.
+    *   Naver, Daum, Bing, Nate, Google 검색을 위한 `baseUrl`, `referer`, Google 검색용 CSS 선택자 (`searchInputSelector`, `searchButtonSelector`) 등을 포함합니다.
     *   **크롤러 설정 (`crawler`)**:
-        *   `type`: 사용할 크롤러 유형 (`'puppeteer'` 또는 `'selenium'`). 환경 변수 `CRAWLER_TYPE`으로 제어.
+        *   `type`: 일반 검색 시 사용할 크롤러 유형 (`'puppeteer'` 또는 `'selenium'`). 환경 변수 `CRAWLER_TYPE`으로 제어. Google 검색은 `HumanLikeGoogleCrawler`를 직접 사용합니다.
         *   `puppeteer`: Puppeteer 관련 설정 (예: `executablePath`, `headless`, `args`, `userAgent`, `timeout` 등). 환경 변수 `PUPPETEER_*` 시리즈로 제어.
         *   `selenium`: Selenium 관련 설정 (예: `browser`, `driverPath`, `headless`, `args`, `userAgent`, `pageLoadTimeout` 등). 환경 변수 `SELENIUM_*` 시리즈로 제어.
     *   애플리케이션 환경(`NODE_ENV`) 정보도 포함합니다.
 
 *   📦 **`src/services/searchService.js`**:
-    *   Naver, Daum, Bing, Nate 개별 검색 수행 및 지정된 URL의 콘텐츠 가져오기와 관련된 비즈니스 로직을 담당합니다.
-    *   `src/crawlers/crawlerFactory.js`의 `createCrawler` 함수를 사용하여 현재 설정에 맞는 크롤러(Puppeteer 또는 Selenium) 인스턴스를 동적으로 생성합니다.
-    *   생성된 크롤러 인스턴스의 `getRawHtml` 메서드를 호출하여 웹 페이지의 raw HTML을 가져옵니다.
+    *   Naver, Daum, Bing, Nate, Google 개별 검색 수행 및 지정된 URL의 콘텐츠 가져오기와 관련된 비즈니스 로직을 담당합니다.
+    *   일반 검색(`naverSearch`, `daumSearch` 등)의 경우 `src/crawlers/crawlerFactory.js`의 `createCrawler` 함수를 사용하여 현재 설정에 맞는 크롤러(Puppeteer 또는 Selenium) 인스턴스를 동적으로 생성하고, `getRawHtml` 메서드를 사용합니다.
+    *   Google 검색(`googleSearch`)의 경우, `src/crawlers/humanLikeGoogleCrawler.js`의 `HumanLikeGoogleCrawler` 인스턴스를 직접 생성하고, `searchAndGetResults` 메서드를 사용하여 "인간처럼" 검색을 수행합니다. 이 크롤러는 검색어 입력, 버튼 클릭 등의 상호작용을 시뮬레이션합니다.
     *   `src/utils/htmlParser.js`의 `cleanHtml` 함수를 사용하여 HTML에서 불필요한 태그를 제거하고 텍스트 콘텐츠를 추출합니다.
-    *   `naverSearch(query, includeHtml)`, `daumSearch(query, includeHtml)`, `bingSearch(query, includeHtml)`, `nateSearch(query, includeHtml)` 함수는 각 검색 엔진의 검색 결과를 가져와 처리합니다.
+    *   `naverSearch(query, includeHtml)`, `daumSearch(query, includeHtml)`, `bingSearch(query, includeHtml)`, `nateSearch(query, includeHtml)`, `googleSearch(query, includeHtml)` 함수는 각 검색 엔진의 검색 결과를 가져와 처리합니다.
     *   `fetchUrlContent(url)` 함수는 지정된 URL의 텍스트 콘텐츠를 가져와 처리합니다.
     *   각 함수 실행 후 크롤러 인스턴스의 `close()` 메서드를 호출하여 리소스를 정리합니다.
 *   📦 **`src/services/integratedSearchService.js`**:
-    *   `searchService.js`의 개별 검색 함수들(Naver, Daum, Bing, Nate)을 병렬로 호출하여 검색 결과를 통합하는 로직을 담당합니다.
+    *   `searchService.js`의 개별 검색 함수들(Naver, Daum, Bing, Nate, Google - Google 포함 여부 결정 필요)을 병렬로 호출하여 검색 결과를 통합하는 로직을 담당합니다.
     *   `Promise.all`을 사용하여 비동기 검색 작업을 효율적으로 처리합니다.
     *   개별 검색 실패 시에도 전체 통합 검색이 중단되지 않도록 오류를 처리하고, 실패 정보를 결과에 포함합니다.
 
 *   🔩 **`src/crawlers/`**:
-    *   **`puppeteerCrawler.js`**: `WebCrawlerInterface`를 구현하는 Puppeteer 기반 크롤러입니다. 생성자에서 Puppeteer 설정을 받아 브라우저를 실행하고, `getRawHtml` 메서드로 페이지 콘텐츠를 가져옵니다. `puppeteer-extra`와 `puppeteer-extra-plugin-stealth`를 사용하여 봇 탐지 우회를 시도합니다.
-    *   **`seleniumCrawler.js`**: `WebCrawlerInterface`를 구현하는 Selenium WebDriver 기반 크롤러입니다. 생성자에서 Selenium 및 브라우저 설정을 받아 WebDriver 세션을 시작하고, `getRawHtml` 메서드로 페이지 콘텐츠를 가져옵니다. Chrome, Firefox 등 다양한 브라우저를 지원할 수 있도록 설계되었습니다.
-    *   **`crawlerFactory.js`**: `createCrawler(config)` 함수를 제공합니다. `serviceConfig.crawler` 설정을 기반으로 `PuppeteerCrawler` 또는 `SeleniumCrawler` 인스턴스를 생성하여 반환합니다. 이를 통해 `searchService.js`는 구체적인 크롤러 구현에 직접 의존하지 않습니다.
-    *   **`src/interfaces/webCrawlerInterface.js` (개념적)**: `getRawHtml(url, options)`, `launch(config)`, `close()` 등의 메서드를 포함하는 웹 크롤러의 공통 인터페이스를 정의합니다. 실제 파일로 존재하지 않을 수 있지만, `PuppeteerCrawler`와 `SeleniumCrawler`가 이 인터페이스를 따르도록 설계되었습니다.
+    *   **`puppeteerCrawler.js`**: `WebCrawlerInterface`를 구현하는 일반적인 Puppeteer 기반 크롤러입니다. 생성자에서 Puppeteer 설정을 받아 브라우저를 실행하고, `getRawHtml` 메서드로 페이지 콘텐츠를 가져옵니다.
+    *   **`seleniumCrawler.js`**: `WebCrawlerInterface`를 구현하는 일반적인 Selenium WebDriver 기반 크롤러입니다. 생성자에서 Selenium 및 브라우저 설정을 받아 WebDriver 세션을 시작하고, `getRawHtml` 메서드로 페이지 콘텐츠를 가져옵니다.
+    *   **`humanLikeGoogleCrawler.js`**: Google 검색 전용으로 설계된 Puppeteer 기반 크롤러입니다. `puppeteer-extra`와 `puppeteer-extra-plugin-stealth`를 사용하여 봇 탐지 우회를 시도하며, Google 검색 페이지에서 검색어를 입력하고 검색 버튼을 클릭하는 등의 "인간과 유사한" 상호작용을 수행하는 `searchAndGetResults` 메서드를 제공합니다.
+    *   **`crawlerFactory.js`**: `createCrawler(config)` 함수를 제공합니다. `serviceConfig.crawler` 설정을 기반으로 일반 크롤러(`PuppeteerCrawler` 또는 `SeleniumCrawler`) 인스턴스를 생성하여 반환합니다. Google 검색에는 사용되지 않습니다.
+    *   **`src/interfaces/webCrawlerInterface.js` (개념적)**: `getRawHtml(url, options)`, `launch(config)`, `close()` 등의 메서드를 포함하는 웹 크롤러의 공통 인터페이스를 정의합니다. `PuppeteerCrawler`와 `SeleniumCrawler`가 이 인터페이스를 따르도록 설계되었습니다. `HumanLikeGoogleCrawler`도 유사한 인터페이스(launch, close, searchAndGetResults)를 가집니다.
 
 *   🚇 **`src/transports/stdioTransport.js`**:
     *   `@modelcontextprotocol/sdk`의 `StdioServerTransport` 인스턴스를 생성하고 구성하는 팩토리 함수(`createStdioTransport`)를 제공합니다.
@@ -129,6 +132,45 @@ mcp-search-server/
       "query": "사용자 검색어",
       "resultText": "Naver 검색 결과 (HTML 태그 포함 또는 제거됨)",
       "retrievedAt": "2024-01-01T12:00:00.000Z"
+    }
+    ```
+
+**예시: `googleSearch` 도구 호출 (터미널에서 `request_google.json` 파일 사용)**
+1.  `request_google.json` 파일 생성:
+    ```json
+    {
+      "tool": "googleSearch",
+      "inputs": {
+        "query": "오늘 날씨",
+        "includeHtml": false
+      },
+      "id": "dev-manual-google-001"
+    }
+    ```
+
+### 3.x. 🛠️ `googleSearch` 도구 (`src/tools/googleSearchTool.js`)
+
+*   🎯 **목적**: 사용자가 제공한 검색어(`query`)로 Google 웹 검색을 수행하고, HTML 태그 포함 여부(`includeHtml`)에 따라 처리된 결과를 반환합니다. 이 도구는 `HumanLikeGoogleCrawler`를 사용하여 검색 페이지와 "인간처럼" 상호작용(검색어 입력, 버튼 클릭 등)합니다. (내부적으로 `searchService.googleSearch` 호출)
+*   📜 **설명**: `Google 검색 (인간과 유사한 행동)`
+*   📥 **입력 스키마 (`zod`):**
+    ```javascript
+    z.object({
+      query: z.string().min(1, { message: "검색어(query)는 필수입니다." }),
+      includeHtml: z.boolean().optional().default(false),
+    })
+    ```
+*   🧠 **핸들러 로직:**
+    1.  `logger.cjs`를 사용하여 함수 실행 정보, 입력 파라미터, 결과 및 오류를 기록합니다.
+    2.  입력으로 받은 `query`와 `includeHtml` 값을 `searchService.googleSearch` 함수에 전달하여 호출합니다.
+    3.  `searchService`로부터 받은 결과 객체를 JSON 문자열로 변환하여 MCP 콘텐츠 구조(`{ type: "text", text: "..." }`)로 포맷합니다.
+    4.  성공 시 포맷된 콘텐츠를 반환하고, 예외 발생 시 오류를 전파하여 `server.js`의 오류 처리기에서 처리하도록 합니다.
+*   ✅ **출력 (성공 시 MCP 응답의 `result.content[0].text` 내부 JSON 구조 예시):**
+    ```json
+    {
+      "query": "사용자 검색어",
+      "resultText": "Google 검색 결과 (HTML 태그 포함 또는 제거됨)",
+      "retrievedAt": "2024-01-01T12:00:00.000Z",
+      "searchEngine": "google"
     }
     ```
 
@@ -270,9 +312,15 @@ mcp-search-server/
 *   **Daum 검색 관련**: `DAUM_SEARCH_BASE_URL`, `DAUM_SEARCH_REFERER`
 *   **Bing 검색 관련**: `BING_SEARCH_BASE_URL`, `BING_SEARCH_REFERER`
 *   **Nate 검색 관련**: `NATE_SEARCH_BASE_URL`, `NATE_SEARCH_REFERER`
-*   **크롤러 선택**:
-    *   `CRAWLER_TYPE`: 사용할 크롤러를 지정합니다 (`'puppeteer'` 또는 `'selenium'`). 기본값은 `'puppeteer'`입니다.
+*   **Google 검색 관련 (`googleSearch`)**:
+    *   `GOOGLE_SEARCH_BASE_URL`: Google 검색 페이지 URL (예: `https://www.google.com`).
+    *   `GOOGLE_SEARCH_REFERER`: Google 검색 시 사용할 Referer.
+    *   `GOOGLE_SEARCH_INPUT_SELECTOR`: Google 검색 페이지 내 검색어 입력창의 CSS 선택자.
+    *   `GOOGLE_SEARCH_BUTTON_SELECTOR`: Google 검색 페이지 내 검색 버튼의 CSS 선택자.
+*   **크롤러 선택 (일반 검색용)**:
+    *   `CRAWLER_TYPE`: Naver, Daum, Bing, Nate 등 일반 검색 시 사용할 크롤러를 지정합니다 (`'puppeteer'` 또는 `'selenium'`). 기본값은 `'puppeteer'`입니다. Google 검색은 `HumanLikeGoogleCrawler` (Puppeteer 기반)를 고정적으로 사용합니다.
 *   **Puppeteer 관련 (`crawler.puppeteer`)**:
+    *   이 설정은 `PuppeteerCrawler` 및 `HumanLikeGoogleCrawler` 모두에 공통적으로 적용될 수 있는 기본 설정을 포함합니다.
     *   `PUPPETEER_EXECUTABLE_PATH`: Chrome/Chromium 실행 파일 경로.
     *   `PUPPETEER_HEADLESS`: `true` 또는 `false`. 기본값 `true`.
     *   `PUPPETEER_ARGS`: Puppeteer 실행 인자 (쉼표로 구분).
@@ -293,10 +341,10 @@ mcp-search-server/
 
 서버는 SOLID 원칙을 준수하는 것을 목표로 합니다:
 
-*   🎯 **단일 책임 원칙 (SRP)**: 각 모듈(예: `server.js`, `naverSearchTool.js`, `daumSearchTool.js`, `bingSearchTool.js`, `nateSearchTool.js`, `integratedSearchTool.js`, `searchService.js`, `integratedSearchService.js`, `puppeteerCrawler.js`, `seleniumCrawler.js`, `crawlerFactory.js`, `htmlParser.js`, `serviceConfig.js`, `logger.cjs`)은 명확히 구분된 책임을 가집니다. 각 크롤러 구현체는 특정 브라우저 자동화 기술을 캡슐화하고, 팩토리는 이들 중 하나를 선택하는 책임을 집니다.
-*   🧩 **개방/폐쇄 원칙 (OCP)**: 새로운 MCP 도구를 추가할 때 기존 도구나 서비스 로직을 크게 수정할 필요 없이 `src/tools/`에 새 파일을 추가하고 `src/tools/index.js`에 등록하는 방식으로 확장이 용이합니다. 또한, 새로운 유형의 크롤러를 추가해야 할 경우, `WebCrawlerInterface`를 구현하는 새 클래스를 만들고 `crawlerFactory.js`를 수정하여 확장이 가능합니다.
-*   🔗 **인터페이스 분리 원칙 (ISP)**: 각 MCP 도구는 명확한 입력 스키마와 출력 형식을 정의하여 클라이언트에게 필요한 최소한의 인터페이스만 제공합니다. `WebCrawlerInterface`는 크롤러의 핵심 기능(`getRawHtml`)을 정의하여, `searchService`가 구체적인 구현에 의존하지 않도록 합니다.
-*   🔌 **의존관계 역전 원칙 (DIP)**: `searchService.js`는 구체적인 크롤러(`PuppeteerCrawler` 또는 `SeleniumCrawler`)에 직접 의존하는 대신, `crawlerFactory.js`와 추상적인 `WebCrawlerInterface`에 의존합니다. 이를 통해 `searchService.js`는 크롤링 기술의 세부 구현으로부터 분리됩니다.
+*   🎯 **단일 책임 원칙 (SRP)**: 각 모듈(예: `server.js`, `*SearchTool.js`, `searchService.js`, `integratedSearchService.js`, `puppeteerCrawler.js`, `seleniumCrawler.js`, `humanLikeGoogleCrawler.js`, `crawlerFactory.js`, `htmlParser.js`, `serviceConfig.js`, `logger.cjs`)은 명확히 구분된 책임을 가집니다. 각 크롤러 구현체는 특정 브라우저 자동화 기술 또는 특정 사이트의 검색 방식을 캡슐화합니다.
+*   🧩 **개방/폐쇄 원칙 (OCP)**: 새로운 MCP 도구를 추가할 때 기존 도구나 서비스 로직을 크게 수정할 필요 없이 `src/tools/`에 새 파일을 추가하고 `src/tools/index.js`에 등록하는 방식으로 확장이 용이합니다. 새로운 유형의 일반 크롤러를 추가해야 할 경우, `WebCrawlerInterface`를 구현하는 새 클래스를 만들고 `crawlerFactory.js`를 수정하여 확장이 가능합니다. Google 검색과 같이 특수한 크롤러가 필요한 경우, 해당 크롤러를 직접 개발하고 `searchService.js`에서 사용합니다.
+*   🔗 **인터페이스 분리 원칙 (ISP)**: 각 MCP 도구는 명확한 입력 스키마와 출력 형식을 정의하여 클라이언트에게 필요한 최소한의 인터페이스만 제공합니다. `WebCrawlerInterface`는 일반 크롤러의 핵심 기능(`getRawHtml`)을 정의하여, `searchService`가 일반 크롤러 구현에 의존하지 않도록 합니다. `HumanLikeGoogleCrawler`는 자체적인 인터페이스(`searchAndGetResults`)를 가집니다.
+*   🔌 **의존관계 역전 원칙 (DIP)**: `searchService.js`는 일반 검색 시 구체적인 크롤러(`PuppeteerCrawler` 또는 `SeleniumCrawler`)에 직접 의존하는 대신, `crawlerFactory.js`와 추상적인 `WebCrawlerInterface`에 의존합니다. Google 검색의 경우, `HumanLikeGoogleCrawler`라는 특정 구현에 의존하지만, 이는 Google 검색 방식의 특수성 때문입니다. 만약 다른 "인간처럼 행동하는" 크롤러가 필요하다면 유사한 패턴을 적용할 수 있습니다.
 
 ## 6. ✨ 새로운 MCP 도구 추가 (예시)
 
@@ -342,17 +390,19 @@ mcp-search-server/
     import { naverSearchTool } from './naverSearchTool.js';
     import { daumSearchTool } from './daumSearchTool.js';
     import { bingSearchTool } from './bingSearchTool.js';
-    import { nateSearchTool } from './nateSearchTool.js'; // Nate 도구 추가
-    import { integratedSearchTool } from './integratedSearchTool.js'; // 통합 검색 도구 추가
+    import { nateSearchTool } from './nateSearchTool.js';
+    import { googleSearchTool } from './googleSearchTool.js'; // googleSearchTool 추가
+    import { integratedSearchTool } from './integratedSearchTool.js';
     import { urlFetcherTool } from './urlFetcherTool.js';
     import { myNewTool } from "./myNewTool.js"; // 새 도구 가져오기
 
     export const tools = [
-      naverSearchTool,
+      // naverSearchTool, // 필요에 따라 주석 해제 또는 유지
       daumSearchTool,
       bingSearchTool,
-      nateSearchTool, // Nate 도구 등록
-      integratedSearchTool, // 통합 검색 도구 등록
+      nateSearchTool,
+      googleSearchTool, // googleSearchTool 등록
+      integratedSearchTool,
       urlFetcherTool,
       myNewTool, // 배열에 추가
     ];
@@ -418,6 +468,9 @@ mcp-search-server/
     # naverSearch 예시
     npm start < request_naver.json
 
+    # googleSearch 예시
+    npm start < request_google.json
+
     # nateSearch 예시
     npm start < request_nate.json
 
@@ -431,6 +484,9 @@ mcp-search-server/
     ```bash
     # naverSearch 예시
     npm run dev < request_naver.json
+
+    # googleSearch 예시
+    npm run dev < request_google.json
 
     # nateSearch 예시
     npm run dev < request_nate.json
@@ -458,11 +514,12 @@ mcp-search-server/
 ## 9. 🌱 향후 개선 사항
 
 *   **테스트 커버리지 확대:** Jest를 사용하여 단위 테스트 및 통합 테스트를 철저히 작성합니다. (현재 ES 모듈 모킹 문제로 일부 보류됨)
-*   **`cheerio`를 사용한 HTML 결과 세분화:** `src/utils/htmlParser.js`의 `cleanHtml` 함수에서 `includeHtml=true`일 때, `selector` 옵션을 통해 특정 검색 결과 영역만 추출하는 기능을 더욱 발전시킬 수 있습니다.
-*   **검색 API 연동 (선택 사항):** 현재는 웹 페이지를 직접 스크레이핑하는 방식이므로 불안정할 수 있습니다. 안정적인 운영을 위해 Naver/Daum/Bing/Nate 검색 API 또는 유사한 공식 API 사용을 고려할 수 있습니다. 이 경우 `serviceConfig.js`에 API 키 설정 등이 추가될 것입니다.
-*   **더 정교한 오류 처리:** 사용자 정의 오류 클래스 및 세분화된 오류 코드를 크롤러 및 서비스 전반에 도입하여 클라이언트에게 더 명확한 오류 정보를 제공할 수 있습니다.
-*   **크롤러 설정 고도화**: 프록시 설정, 쿠키 관리, 요청 인터셉트 등 더 다양한 크롤러 옵션을 `serviceConfig.js` 및 각 크롤러 구현체를 통해 제어할 수 있도록 확장합니다.
-*   **크롤러 인스턴스 관리 전략 개선**: 현재 `searchService.js`에서는 각 요청마다 크롤러 인스턴스를 생성하고 종료합니다. 고성능 환경에서는 크롤러 인스턴스 풀(pool)을 관리하거나 싱글톤으로 사용하는 등의 최적화 전략을 고려할 수 있습니다.
+*   **`cheerio`를 사용한 HTML 결과 세분화:** `src/utils/htmlParser.js`의 `cleanHtml` 함수에서 `includeHtml=true`일 때, `selector` 옵션을 통해 특정 검색 결과 영역만 추출하는 기능을 더욱 발전시킬 수 있습니다. 특히 Google 검색 결과는 구조가 복잡하므로, 더 정교한 파싱 로직이 필요할 수 있습니다.
+*   **검색 API 연동 (선택 사항):** 현재는 웹 페이지를 직접 스크레이핑하는 방식이므로 불안정할 수 있습니다. 안정적인 운영을 위해 Naver/Daum/Bing/Nate/Google 검색 API 또는 유사한 공식 API 사용을 고려할 수 있습니다. 이 경우 `serviceConfig.js`에 API 키 설정 등이 추가될 것입니다.
+*   **더 정교한 오류 처리:** 사용자 정의 오류 클래스 및 세분화된 오류 코드를 크롤러 및 서비스 전반에 도입하여 클라이언트에게 더 명확한 오류 정보를 제공할 수 있습니다. `HumanLikeGoogleCrawler`의 경우, Google의 UI 변경에 따른 선택자(selector) 오류 등을 더 구체적으로 보고할 수 있습니다.
+*   **크롤러 설정 고도화**: 프록시 설정, 쿠키 관리 (예: `HumanLikeGoogleCrawler`의 `handleCookieConsent` 개선), 요청 인터셉트 등 더 다양한 크롤러 옵션을 `serviceConfig.js` 및 각 크롤러 구현체를 통해 제어할 수 있도록 확장합니다.
+*   **크롤러 인스턴스 관리 전략 개선**: 현재 `searchService.js`에서는 각 요청마다 크롤러 인스턴스를 생성하고 종료합니다. 고성능 환경에서는 크롤러 인스턴스 풀(pool)을 관리하거나 싱글톤으로 사용하는 등의 최적화 전략을 고려할 수 있습니다. 특히 `HumanLikeGoogleCrawler`는 초기화 비용이 상대적으로 클 수 있습니다.
+*   **`integratedSearchService`에 Google 검색 통합**: 현재 `integratedSearchService.js`는 Google 검색을 포함하지 않습니다. 필요에 따라 여기에 `googleSearch`를 추가하고, 병렬 실행 시 Google 검색의 특수성을 고려해야 합니다.
 
 ## cheerio 설치 및 사용 목적
 
@@ -485,7 +542,7 @@ Naver 등에서 자동화 탐지를 우회하기 위해 아래 패키지를 추�
 ### 설치 명령어
 
 ```bash
-npm install puppeteer-extra puppeteer-extra-plugin-stealth
+npm install puppeteer-extra@latest puppeteer-extra-plugin-stealth@latest
 ```
 
 ### 사용 목적
