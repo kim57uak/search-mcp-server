@@ -2,6 +2,7 @@
 import { serviceConfig } from '../config/serviceConfig.js';
 import logger from '../utils/logger.cjs';
 import { createCrawler } from '../crawlers/crawlerFactory.js'; // CrawlerFactory 임포트
+import HumanLikeGoogleCrawler from '../crawlers/humanLikeGoogleCrawler.js'; // HumanLikeGoogleCrawler 임포트
 import { cleanHtml } from '../utils/htmlParser.js';
 
 // 크롤러 인스턴스를 관리하기 위한 변수.
@@ -73,6 +74,76 @@ export const naverSearch = async (query, includeHtml = false) => {
     if (crawlerInstance) {
       await crawlerInstance.close();
       logger.info(`[SearchService] ${crawlerInstance.constructor.name} instance closed after Naver search.`);
+    }
+  }
+};
+
+/**
+ * Google 검색을 수행합니다. (인간과 유사한 행동 시뮬레이션)
+ * @param {string} query - 검색어
+ * @param {boolean} includeHtml - 결과에 HTML 태그를 포함할지 여부
+ * @returns {Promise<object>} 검색 결과 객체 { query, resultText, retrievedAt, searchEngine: 'google' }
+ * @throws {Error} 검색 중 오류 발생 시
+ */
+export const googleSearch = async (query, includeHtml = false) => {
+  logger.info(
+    `[SearchService] Initiating Google search (human-like) for query: "${query}", includeHtml: ${includeHtml}`,
+  );
+
+  const {
+    baseUrl, // Google 검색 페이지 URL (e.g., https://www.google.com)
+    referer,
+    searchInputSelector, // 검색 입력 필드 선택자
+    searchButtonSelector, // 검색 버튼 선택자
+  } = serviceConfig.googleSearch;
+  // searchUrl은 직접 사용하지 않고, baseUrl로 이동 후 상호작용
+
+  let crawlerInstance = null;
+  try {
+    // HumanLikeGoogleCrawler 인스턴스 생성
+    // serviceConfig.crawler.puppeteer 설정과 googleSearch 관련 설정을 모두 활용할 수 있도록 전달
+    const crawlerConfig = {
+        ...(serviceConfig.crawler.puppeteer), // 기본 puppeteer 설정
+        // HumanLikeGoogleCrawler가 특별히 필요로 하는 설정이 있다면 여기에 추가
+        // 예를 들어, serviceConfig.googleSearch에 있는 selectors 등을 HumanLikeGoogleCrawler 내부에서 사용하도록 할 수 있음
+    };
+    crawlerInstance = new HumanLikeGoogleCrawler(crawlerConfig);
+    logger.info(`[SearchService] Using HumanLikeGoogleCrawler for Google search.`);
+
+    // pageOptions 구성 (주로 Referer 등 HumanLikeGoogleCrawler 외부에서 결정되는 값)
+    const pageOptions = {
+      referer, // serviceConfig.googleSearch.referer
+      // HumanLikeGoogleCrawler의 searchAndGetResults 메서드가 추가 옵션을 받는다면 여기에 전달
+    };
+
+    // HumanLikeGoogleCrawler의 searchAndGetResults 메서드 호출
+    const rawHtml = await crawlerInstance.searchAndGetResults(query, pageOptions);
+
+    logger.info('[SearchService] Raw HTML received for Google search');
+    const resultText = cleanHtml(rawHtml, includeHtml);
+    logger.debug('[SearchService] Cleaned Google search result text:', resultText.substring(0, 200));
+    const retrievedAt = new Date().toISOString();
+
+    logger.info(
+      `[SearchService] Successfully retrieved and processed Google search results for query: "${query}"`,
+    );
+
+    return {
+      query,
+      resultText,
+      retrievedAt,
+      searchEngine: 'google',
+    };
+  } catch (error) {
+    logger.error(
+      `[SearchService] Error during Google search for query "${query}": ${error.message}`,
+      { stack: error.stack },
+    );
+    throw error;
+  } finally {
+    if (crawlerInstance) {
+      await crawlerInstance.close();
+      logger.info(`[SearchService] ${crawlerInstance.constructor.name} instance closed after Google search.`);
     }
   }
 };
