@@ -4,7 +4,35 @@ import StealthPlugin from 'puppeteer-extra-plugin-stealth';
 import logger from '../utils/logger.cjs';
 import { serviceConfig } from '../config/serviceConfig.js'; // 설정 값 사용을 위해 임포트
 
-puppeteer.use(StealthPlugin());
+// StealthPlugin의 모든 옵션을 명시적으로 활성화
+const stealth = StealthPlugin();
+// 공식적으로 지원되는 evasions만 활성화
+stealth.enabledEvasions.add('navigator.plugins');
+stealth.enabledEvasions.add('navigator.languages');
+stealth.enabledEvasions.add('navigator.webdriver');
+stealth.enabledEvasions.add('chrome.runtime');
+stealth.enabledEvasions.add('media.codecs');
+stealth.enabledEvasions.add('iframe.contentWindow');
+stealth.enabledEvasions.add('window.outerdimensions');
+stealth.enabledEvasions.add('user-agent-override');
+puppeteer.use(stealth);
+
+// sleep 함수 추가 (클래스 외부)
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+// 다양한 user-agent pool 정의
+const userAgents = [
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Safari/605.1.15',
+  'Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:124.0) Gecko/20100101 Firefox/124.0',
+  'Mozilla/5.0 (Macintosh; Intel Mac OS X 13_4_1) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+  'Mozilla/5.0 (iPhone; CPU iPhone OS 17_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 Mobile/15E148 Safari/604.1',
+  'Mozilla/5.0 (Linux; Android 13; SM-G991N) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Mobile Safari/537.36',
+  // ... 필요시 추가 ...
+];
 
 class HumanLikeGoogleCrawler {
   /** @type {import('puppeteer').Browser | null} */
@@ -14,7 +42,7 @@ class HumanLikeGoogleCrawler {
 
   constructor(config) {
     this.#config = {
-      headless: true,
+      headless: false,
       args: [
         '--no-sandbox',
         '--disable-setuid-sandbox',
@@ -65,11 +93,12 @@ class HumanLikeGoogleCrawler {
   /**
    * Google 검색을 수행하고 결과 페이지의 HTML을 반환합니다.
    * @param {string} query - 검색어
+   * @param {boolean} [retry=false] - CAPTCHA/비정상 트래픽 감지 시 1회 재시도
    * @param {object} [pageOptions={}] - 페이지 이동 및 상호작용 관련 옵션
    * @param {string} [pageOptions.referer] - Referer 헤더 값
    * @returns {Promise<string>} 검색 결과 페이지의 raw HTML 문자열
    */
-  async searchAndGetResults(query, pageOptions = {}) {
+  async searchAndGetResults(query, retry = false, pageOptions = {}) {
     let page;
     try {
       const browser = await this.launch();
@@ -78,8 +107,11 @@ class HumanLikeGoogleCrawler {
       }
       page = await browser.newPage();
 
+      // 다양한 user-agent pool에서 무작위 선택 적용
+      const randomUA = userAgents[Math.floor(Math.random() * userAgents.length)];
+      await page.setUserAgent(randomUA);
+
       // 사용자 에이전트 및 헤더 설정
-      await page.setUserAgent(this.#config.userAgent);
       const headers = { ...(this.#config.defaultHeaders || {}) };
       if (pageOptions.referer) {
         headers['Referer'] = pageOptions.referer;
@@ -89,52 +121,84 @@ class HumanLikeGoogleCrawler {
       await page.setExtraHTTPHeaders(headers);
 
       // Google 검색 페이지 설정 로드
-      const { baseUrl, searchInputSelector, searchButtonSelector } = serviceConfig.googleSearch;
+      const { baseUrl, searchInputSelector } = serviceConfig.googleSearch;
+      const DEFAULT_TIMEOUT = 60000; // 60초로 상향
 
       logger.info(`[HumanLikeGoogleCrawler] Navigating to Google homepage: ${baseUrl}`);
       await page.goto(baseUrl, {
-        waitUntil: this.#config.waitUntil,
-        timeout: this.#config.timeout,
+        waitUntil: this.#config.waitUntil || 'domcontentloaded',
+        timeout: DEFAULT_TIMEOUT,
       });
 
-      // 쿠키 동의창 등이 있을 경우 처리 (필요에 따라 추가)
-      // 예: await this.handleCookieConsent(page);
+      // 쿠키 동의 자동 처리
+      await this.handleCookieConsent(page);
 
+      // 인간 행동 시뮬레이션: 마우스 이동, 클릭, 포커스, 랜덤 대기
+      logger.info('[HumanLikeGoogleCrawler] Simulating human-like mouse movement to search input.');
+      const searchBox = await page.$(searchInputSelector);
+      if (searchBox) {
+        const boundingBox = await searchBox.boundingBox();
+        if (boundingBox) {
+          await page.mouse.move(
+            boundingBox.x + boundingBox.width / 2 + Math.random() * 10,
+            boundingBox.y + boundingBox.height / 2 + Math.random() * 10,
+            { steps: 10 }
+          );
+          await sleep(200 + Math.random() * 400);
+          await searchBox.click();
+          await sleep(200 + Math.random() * 400);
+        }
+      }
+
+      // 검색어 천천히 타이핑
       logger.info(`[HumanLikeGoogleCrawler] Typing query "${query}" into search input: ${searchInputSelector}`);
-      await page.waitForSelector(searchInputSelector, { visible: true, timeout: this.#config.timeout / 2 });
-      await page.type(searchInputSelector, query, { delay: Math.random() * 100 + 50 }); // 랜덤 딜레이
+      await page.type(searchInputSelector, query, { delay: 80 + Math.random() * 40 });
+      await sleep(200 + Math.random() * 400);
 
-      // 검색 버튼 클릭 또는 Enter
-      logger.info(`[HumanLikeGoogleCrawler] Attempting to click search button or press Enter.`);
+      // 엔터키 입력 및 결과 대기
+      logger.info(`[HumanLikeGoogleCrawler] Pressing Enter to submit search query.`);
+      await Promise.all([
+        page.waitForNavigation({ waitUntil: this.#config.waitUntil || 'domcontentloaded', timeout: DEFAULT_TIMEOUT }),
+        page.keyboard.press('Enter')
+      ]);
+
+      // 결과 페이지 주요 요소 대기 (예외 처리 강화)
+      logger.info('[HumanLikeGoogleCrawler] Waiting for search results to appear.');
+      let searchResultsAppeared = false;
       try {
-        await page.waitForSelector(searchButtonSelector, { visible: true, timeout: 5000 }); // 버튼이 나타날 때까지 잠시 대기
-        // 여러 버튼 중 실제로 보이는 첫 번째 버튼 클릭 시도
-        const buttons = await page.$$(searchButtonSelector);
-        let clicked = false;
-        for (const button of buttons) {
-          if (await button.isIntersectingViewport()) {
-            await Promise.all([
-                page.waitForNavigation({ waitUntil: this.#config.waitUntil, timeout: this.#config.timeout }),
-                button.click({ delay: Math.random() * 50 + 20 }) // 클릭 딜레이
-            ]);
-            clicked = true;
-            logger.info(`[HumanLikeGoogleCrawler] Clicked search button: ${searchButtonSelector}`);
-            break;
-          }
+        await page.waitForSelector('#search, .g, .rc', { timeout: DEFAULT_TIMEOUT });
+        searchResultsAppeared = true;
+      } catch {
+        const pageContent = await page.content();
+        if (/로봇이 아닙니다|비정상 트래픽|captcha|자동 검색|보안문자/i.test(pageContent)) {
+          logger.error('[HumanLikeGoogleCrawler] CAPTCHA/비정상 트래픽 감지됨. HTML 일부:', pageContent.slice(0, 500));
+          throw new Error('Google 검색 중 CAPTCHA/비정상 트래픽으로 중단됨.');
+        } else {
+          logger.error('[HumanLikeGoogleCrawler] 검색 결과 없음. HTML 일부:', pageContent.slice(0, 500));
+          throw new Error('Google 검색 결과를 찾을 수 없습니다.');
         }
-        if (!clicked) {
-          logger.warn(`[HumanLikeGoogleCrawler] No visible search button found or clickable. Pressing Enter.`);
-          await Promise.all([
-            page.waitForNavigation({ waitUntil: this.#config.waitUntil, timeout: this.#config.timeout }),
-            page.keyboard.press('Enter')
-          ]);
+      }
+
+      if (searchResultsAppeared) {
+        // 랜덤 스크롤/마우스 이동(1~2회)
+        for (let i = 0; i < 1 + Math.floor(Math.random() * 2); i++) {
+          await page.mouse.move(100 + Math.random() * 400, 300 + Math.random() * 200, { steps: 5 });
+          await sleep(200 + Math.random() * 400);
+          await page.evaluate(() => window.scrollBy(0, 200 + Math.random() * 300));
         }
-      } catch (e) {
-        logger.warn(`[HumanLikeGoogleCrawler] Error clicking search button, pressing Enter. Error: ${e.message}`);
-        await Promise.all([
-            page.waitForNavigation({ waitUntil: this.#config.waitUntil, timeout: this.#config.timeout }),
-            page.keyboard.press('Enter')
-        ]);
+      }
+
+      // 캡차/비정상 트래픽 감지 및 재시도(1회)
+      const pageContent = await page.content();
+      if (/로봇이 아닙니다|비정상 트래픽|captcha|자동 검색|보안문자/i.test(pageContent)) {
+        logger.warn('[HumanLikeGoogleCrawler] CAPTCHA or abnormal traffic detected. Retrying after delay...');
+        await sleep(3000 + Math.random() * 2000);
+        // 재귀적 1회 재시도(2회 이상은 중단)
+        if (!retry) {
+          return await this.searchAndGetResults(query, true); // retry=true
+        } else {
+          throw new Error('Google 검색 중 CAPTCHA/비정상 트래픽으로 중단됨.');
+        }
       }
 
       logger.info('[HumanLikeGoogleCrawler] Search results page loaded.');
@@ -192,7 +256,7 @@ class HumanLikeGoogleCrawler {
         if (button && await button.isIntersectingViewport()) {
           logger.info(`[HumanLikeGoogleCrawler] Found cookie consent button: ${selector}. Clicking...`);
           await button.click();
-          await page.waitForTimeout(1000 + Math.random() * 1000); // 클릭 후 잠시 대기
+          await sleep(1000 + Math.random() * 1000); // 클릭 후 잠시 대기
           logger.info(`[HumanLikeGoogleCrawler] Clicked cookie consent button.`);
           return; // 하나 처리하면 종료
         }

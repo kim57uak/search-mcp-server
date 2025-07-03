@@ -38,6 +38,12 @@
 
 **참고:** 웹 크롤러(Puppeteer 또는 Selenium)를 실제로 사용하기 위해서는 Node.js 패키지 설치 외에 각 크롤러에 맞는 브라우저 및 WebDriver 설정이 필요할 수 있습니다. 자세한 내용은 아래 "크롤러 설정 및 설치 안내" 섹션을 참조하세요.
 
+## 구글 크롤링/우회 기능을 위한 추가 패키지 설치
+
+```bash
+npm install puppeteer-extra@latest puppeteer-extra-plugin-stealth@latest
+```
+
 ## 실행 방법
 
 ### 1. 개발 모드로 실행 (Nodemon 사용)

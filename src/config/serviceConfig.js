@@ -71,11 +71,13 @@ export const serviceConfig = {
     referer: getEnv('GOOGLE_SEARCH_REFERER', 'https://www.google.com/'),
     searchInputSelector: getEnv('GOOGLE_SEARCH_INPUT_SELECTOR', 'textarea[name="q"], input[name="q"]'), // 검색창 CSS 선택자
     searchButtonSelector: getEnv('GOOGLE_SEARCH_BUTTON_SELECTOR', 'input[name="btnK"], button[name="btnK"]'), // 검색 버튼 CSS 선택자
+    timeout: 60000, // 60초로 상향
+    waitUntil: 'domcontentloaded',
   },
   crawler: {
     // 사용할 크롤러 유형: 'puppeteer' 또는 'selenium'
-    type: getEnv('CRAWLER_TYPE', 'puppeteer'), // 기본값 'puppeteer'
-    //type: getEnv('CRAWLER_TYPE', 'selenium'), // 기본값 'puppeteer'
+    //type: getEnv('CRAWLER_TYPE', 'puppeteer'), // 기본값 'puppeteer'
+    type: getEnv('CRAWLER_TYPE', 'selenium'), // 기본값 'puppeteer'
 
     puppeteer: {
       executablePath: getEnv(

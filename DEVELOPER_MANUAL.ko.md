@@ -67,7 +67,7 @@ mcp-search-server/
     *   **`daumSearchTool.js`**: `daumSearch` MCP 도구를 정의합니다. (상세 설명은 아래 섹션 참조)
     *   **`bingSearchTool.js`**: `bingSearch` MCP 도구를 정의합니다. (상세 설명은 아래 섹션 참조)
     *   **`nateSearchTool.js`**: `nateSearch` MCP 도구를 정의합니다. (상세 설명은 아래 섹션 참조)
-    *   **`googleSearchTool.js`**: `googleSearch` MCP 도구를 정의합니다. Google 검색 시 "인간처럼" 동작하는 특수 크롤러를 사용합니다. (상세 설명은 아래 섹션 참조)
+    *   **`googleSearchTool.js`**: `googleSearch` MCP 도구를 정의합니다. Google 검색 시 "인간처럼" 동작하는 특수 크롤러를 사용합니다.
     *   **`integratedSearchTool.js`**: `integratedSearch` MCP 도구를 정의합니다. (상세 설명은 아래 섹션 참조)
     *   **`urlFetcherTool.js`**: `fetchUrl` MCP 도구를 정의합니다. (상세 설명은 아래 섹션 참조)
     *   **`index.js`**: 모든 도구 정의를 집계하고 배열로 내보내 `server.js`가 사용하도록 합니다.
@@ -542,7 +542,7 @@ Naver 등에서 자동화 탐지를 우회하기 위해 아래 패키지를 추�
 ### 설치 명령어
 
 ```bash
-npm install puppeteer-extra puppeteer-extra-plugin-stealth
+npm install puppeteer-extra@latest puppeteer-extra-plugin-stealth@latest
 ```
 
 ### 사용 목적
