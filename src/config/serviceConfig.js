@@ -76,8 +76,8 @@ export const serviceConfig = {
   },
   crawler: {
     // 사용할 크롤러 유형: 'puppeteer' 또는 'selenium'
-    //type: getEnv('CRAWLER_TYPE', 'puppeteer'), // 기본값 'puppeteer'
-    type: getEnv('CRAWLER_TYPE', 'selenium'), // 기본값 'puppeteer'
+    type: getEnv('CRAWLER_TYPE', 'puppeteer'), // 기본값 'puppeteer'
+    //type: getEnv('CRAWLER_TYPE', 'selenium'), // 기본값 'puppeteer'
 
     puppeteer: {
       executablePath: getEnv(
@@ -93,7 +93,7 @@ export const serviceConfig = {
           '--disable-dev-shm-usage',
           '--start-maximized',
           '--disable-gpu',
-          '--headless',
+          //'--headless',
         ],
         'array',
       ),

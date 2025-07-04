@@ -56,6 +56,12 @@ class HumanLikeGoogleCrawler {
       ...config, // 외부 설정으로 덮어쓰기
     };
 
+    // Mac 환경에서 remote-debugging-port/user-data-dir 옵션 추가
+    // if (process.platform === 'darwin') {
+    //   this.#config.args.push('--remote-debugging-port=9222');
+    //   this.#config.args.push('--user-data-dir=/Users/dolpaks/chrometemp');
+    // }
+
     // User-Agent 및 Headers는 serviceConfig에서 가져오거나, 여기서 직접 정의할 수 있음
     this.#config.userAgent = this.#config.userAgent || serviceConfig.crawler.puppeteer.userAgent;
     this.#config.defaultHeaders = this.#config.defaultHeaders || serviceConfig.crawler.puppeteer.defaultHeaders;
@@ -72,9 +78,10 @@ class HumanLikeGoogleCrawler {
       const executablePath = this.#config.executablePath ||
         (process.platform === 'darwin' ? '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome' :
          process.platform === 'win32' ? 'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe' :
-         '/usr/bin/google-chrome');
+         '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome');
 
       logger.info(`[HumanLikeGoogleCrawler] Launching browser with executablePath: ${executablePath}`);
+      logger.info('[HumanLikeGoogleCrawler] Launching browser with args:', this.#config.args);
       this.#browser = await puppeteer.launch({
         headless: this.#config.headless,
         executablePath,
@@ -107,9 +114,14 @@ class HumanLikeGoogleCrawler {
       }
       page = await browser.newPage();
 
+      // Viewport 설정(1920x1080)
+      await page.setViewport({ width: 1920, height: 1080 });
+      await sleep(500 + Math.random() * 1000); // 페이지 생성 후 대기
+
       // 다양한 user-agent pool에서 무작위 선택 적용
       const randomUA = userAgents[Math.floor(Math.random() * userAgents.length)];
       await page.setUserAgent(randomUA);
+      await sleep(500 + Math.random() * 1000); // User-Agent 설정 후 대기
 
       // 사용자 에이전트 및 헤더 설정
       const headers = { ...(this.#config.defaultHeaders || {}) };
@@ -144,16 +156,16 @@ class HumanLikeGoogleCrawler {
             boundingBox.y + boundingBox.height / 2 + Math.random() * 10,
             { steps: 10 }
           );
-          await sleep(200 + Math.random() * 400);
+          await sleep(700 + Math.random() * 800); // 마우스 이동 후 대기
           await searchBox.click();
-          await sleep(200 + Math.random() * 400);
+          await sleep(700 + Math.random() * 800); // 클릭 후 대기
         }
       }
 
       // 검색어 천천히 타이핑
       logger.info(`[HumanLikeGoogleCrawler] Typing query "${query}" into search input: ${searchInputSelector}`);
-      await page.type(searchInputSelector, query, { delay: 80 + Math.random() * 40 });
-      await sleep(200 + Math.random() * 400);
+      await page.type(searchInputSelector, query, { delay: 120 + Math.random() * 80 });
+      await sleep(700 + Math.random() * 800); // 타이핑 후 대기
 
       // 엔터키 입력 및 결과 대기
       logger.info(`[HumanLikeGoogleCrawler] Pressing Enter to submit search query.`);
@@ -161,6 +173,7 @@ class HumanLikeGoogleCrawler {
         page.waitForNavigation({ waitUntil: this.#config.waitUntil || 'domcontentloaded', timeout: DEFAULT_TIMEOUT }),
         page.keyboard.press('Enter')
       ]);
+      await sleep(700 + Math.random() * 800); // 엔터 후 대기
 
       // 결과 페이지 주요 요소 대기 (예외 처리 강화)
       logger.info('[HumanLikeGoogleCrawler] Waiting for search results to appear.');
@@ -183,19 +196,27 @@ class HumanLikeGoogleCrawler {
         // 랜덤 스크롤/마우스 이동(1~2회)
         for (let i = 0; i < 1 + Math.floor(Math.random() * 2); i++) {
           await page.mouse.move(100 + Math.random() * 400, 300 + Math.random() * 200, { steps: 5 });
-          await sleep(200 + Math.random() * 400);
+          await sleep(700 + Math.random() * 800);
           await page.evaluate(() => window.scrollBy(0, 200 + Math.random() * 300));
+          await sleep(700 + Math.random() * 800);
         }
       }
 
-      // 캡차/비정상 트래픽 감지 및 재시도(1회)
+      // 캡차/비정상 트래픽 감지 및 재시도(최대 2회, 5~10초 랜덤 대기)
       const pageContent = await page.content();
       if (/로봇이 아닙니다|비정상 트래픽|captcha|자동 검색|보안문자/i.test(pageContent)) {
         logger.warn('[HumanLikeGoogleCrawler] CAPTCHA or abnormal traffic detected. Retrying after delay...');
-        await sleep(3000 + Math.random() * 2000);
-        // 재귀적 1회 재시도(2회 이상은 중단)
-        if (!retry) {
-          return await this.searchAndGetResults(query, true); // retry=true
+        await sleep(5000 + Math.random() * 5000); // 5~10초 대기
+        // 최대 2회까지 재시도
+        if (typeof retry === 'number') {
+          if (retry < 2) {
+            return await this.searchAndGetResults(query, retry + 1, pageOptions);
+          } else {
+            throw new Error('Google 검색 중 CAPTCHA/비정상 트래픽으로 중단됨. (최대 재시도 초과)');
+          }
+        } else if (!retry) {
+          // 최초 호출이면 retry=0으로 시작
+          return await this.searchAndGetResults(query, 1, pageOptions);
         } else {
           throw new Error('Google 검색 중 CAPTCHA/비정상 트래픽으로 중단됨.');
         }
