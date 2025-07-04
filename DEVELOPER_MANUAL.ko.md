@@ -1,10 +1,10 @@
 # MCP Naver Search Server 개발자 매뉴얼
 
-이 문서는 MCP Naver Search Server의 아키텍처, 구성 요소 및 개발 가이드라인에 대한 자세한 개요를 제공합니다.
+이 문서는 MCP Search Server의 아키텍처, 구성 요소 및 개발 가이드라인에 대한 자세한 개요를 제공합니다.
 
 ## 1. 📖 프로젝트 개요
 
-MCP Search Server는 모델 컨텍스트 프로토콜(MCP) SDK를 사용하여 구축된 Node.js 애플리케이션입니다. Naver, Daum, Bing, Nate 웹 검색 기능을 수행하는 MCP 도구들(`naverSearchTool`, `daumSearchTool`, `bingSearchTool`, `nateSearchTool`) 및 특정 URL의 콘텐츠를 가져오는 도구(`urlFetcherTool`), 그리고 이들을 통합하여 검색하는 `integratedSearchTool`을 노출합니다. 이 서버는 웹 크롤링 작업에 Puppeteer 또는 Selenium을 선택적으로 사용할 수 있도록 유연하게 설계되었으며, 유지보수성과 확장성을 보장하기 위해 SOLID 원칙을 염두에 두고 개발되었습니다.
+MCP Search Server는 모델 컨텍스트 프로토콜(MCP) SDK를 사용하여 구축된 Node.js 애플리케이션입니다. Naver, Daum, Bing, Nate, Google, Baidu, Yahoo Japan, Yahoo, Yandex 웹 검색 기능을 수행하는 MCP 도구들 및 특정 URL의 콘텐츠를 가져오는 도구(`urlFetcherTool`), 그리고 이들을 통합하여 검색하는 `integratedSearchTool`을 노출합니다. 이 서버는 웹 크롤링 작업에 Puppeteer 또는 Selenium을 선택적으로 사용할 수 있도록 유연하게 설계되었으며, 유지보수성과 확장성을 보장하기 위해 SOLID 원칙을 염두에 두고 개발되었습니다.
 
 서버는 모델 컨텍스트 프로토콜(MCP) SDK (`@modelcontextprotocol/sdk`)를 사용하여 구축되었습니다. 이 SDK는 프로젝트의 핵심 종속성이며, `package.json` 파일을 통해 관리되고 표준 `npm install` 프로세스의 일부로 설치됩니다. MCP 호환 서비스 및 도구를 만들고 관리하는 데 필요한 도구와 인터페이스를 제공합니다.
 
@@ -16,7 +16,7 @@ mcp-search-server/
 ├── logs/                  # 로그 파일 (gitignored)
 ├── src/                   # 소스 코드
 │   ├── config/            # 설정 파일
-│   │   └── serviceConfig.js # 서비스별 설정 (Naver/Daum/Bing/Nate/Google 검색, 크롤러 설정 등)
+│   │   └── serviceConfig.js # 서비스별 설정 (Naver/Daum/Bing/Nate/Google/Baidu/YahooJapan/Yahoo/Yandex 검색, 크롤러 설정 등)
 │   ├── crawlers/          # 웹 크롤러 구현체 및 팩토리
 │   │   ├── puppeteerCrawler.js # Puppeteer 기반 일반 크롤러
 │   │   ├── seleniumCrawler.js  # Selenium 기반 일반 크롤러
@@ -30,6 +30,11 @@ mcp-search-server/
 │   │   ├── daumSearchTool.js   # Daum 검색 도구
 │   │   ├── bingSearchTool.js   # Bing 검색 도구
 │   │   ├── nateSearchTool.js   # Nate 검색 도구
+│   │   ├── googleSearchTool.js # Google 검색 도구
+│   │   ├── baiduSearchTool.js  # Baidu 검색 도구
+│   │   ├── yahooJapanSearchTool.js # Yahoo Japan 검색 도구
+│   │   ├── yahooSearchTool.js  # Yahoo 검색 도구
+│   │   ├── yandexSearchTool.js # Yandex 검색 도구
 │   │   ├── integratedSearchTool.js # 통합 검색 도구
 │   │   ├── urlFetcherTool.js   # URL 콘텐츠 가져오기 도구
 │   │   └── index.js       # 모든 도구 내보내기
@@ -56,7 +61,7 @@ mcp-search-server/
 
 *   📄 **`src/server.js`**:
     *   `@modelcontextprotocol/sdk`에서 `McpServer` 인스턴스를 초기화합니다.
-    *   `src/tools/index.js`에서 모든 도구 정의(예: `naverSearchTool`, `daumSearchTool`, `bingSearchTool`, `nateSearchTool`, `googleSearchTool`, `integratedSearchTool`, `fetchUrlTool`)를 가져옵니다.
+    *   `src/tools/index.js`에서 모든 도구 정의(예: `naverSearchTool`, `daumSearchTool`, `bingSearchTool`, `nateSearchTool`, `googleSearchTool`, `baiduSearchTool`, `yahooJapanSearchTool`, `yahooSearchTool`, `yandexSearchTool`, `integratedSearchTool`, `fetchUrlTool`)를 가져옵니다.
     *   가져온 도구들을 MCP 서버에 등록합니다.
     *   `src/transports/stdioTransport.js`에서 생성된 `StdioServerTransport`를 사용하여 MCP 서버를 연결합니다.
     *   서버는 표준 입출력(stdio)을 통해 MCP 요청을 수신하고 응답합니다.
@@ -68,13 +73,17 @@ mcp-search-server/
     *   **`bingSearchTool.js`**: `bingSearch` MCP 도구를 정의합니다. (상세 설명은 아래 섹션 참조)
     *   **`nateSearchTool.js`**: `nateSearch` MCP 도구를 정의합니다. (상세 설명은 아래 섹션 참조)
     *   **`googleSearchTool.js`**: `googleSearch` MCP 도구를 정의합니다. Google 검색 시 "인간처럼" 동작하는 특수 크롤러를 사용합니다.
+    *   **`baiduSearchTool.js`**: `baiduSearch` MCP 도구를 정의합니다.
+    *   **`yahooJapanSearchTool.js`**: `yahooJapanSearch` MCP 도구를 정의합니다.
+    *   **`yahooSearchTool.js`**: `yahooSearch` MCP 도구를 정의합니다.
+    *   **`yandexSearchTool.js`**: `yandexSearch` MCP 도구를 정의합니다.
     *   **`integratedSearchTool.js`**: `integratedSearch` MCP 도구를 정의합니다. (상세 설명은 아래 섹션 참조)
     *   **`urlFetcherTool.js`**: `fetchUrl` MCP 도구를 정의합니다. (상세 설명은 아래 섹션 참조)
     *   **`index.js`**: 모든 도구 정의를 집계하고 배열로 내보내 `server.js`가 사용하도록 합니다.
 
 *   ⚙️ **`src/config/serviceConfig.js`**:
     *   `searchService.js`, `integratedSearchService.js` 및 크롤러(`PuppeteerCrawler`, `SeleniumCrawler`, `HumanLikeGoogleCrawler`)를 위한 설정을 중앙에서 관리합니다.
-    *   Naver, Daum, Bing, Nate, Google 검색을 위한 `baseUrl`, `referer`, Google 검색용 CSS 선택자 (`searchInputSelector`, `searchButtonSelector`) 등을 포함합니다.
+    *   Naver, Daum, Bing, Nate, Google, Baidu, Yahoo Japan, Yahoo, Yandex 검색을 위한 `baseUrl`, `referer`, Google 검색용 CSS 선택자 (`searchInputSelector`, `searchButtonSelector`) 등을 포함합니다.
     *   **크롤러 설정 (`crawler`)**:
         *   `type`: 일반 검색 시 사용할 크롤러 유형 (`'puppeteer'` 또는 `'selenium'`). 환경 변수 `CRAWLER_TYPE`으로 제어. Google 검색은 `HumanLikeGoogleCrawler`를 직접 사용합니다.
         *   `puppeteer`: Puppeteer 관련 설정 (예: `executablePath`, `headless`, `args`, `userAgent`, `timeout` 등). 환경 변수 `PUPPETEER_*` 시리즈로 제어.
@@ -83,14 +92,14 @@ mcp-search-server/
 
 *   📦 **`src/services/searchService.js`**:
     *   Naver, Daum, Bing, Nate, Google 개별 검색 수행 및 지정된 URL의 콘텐츠 가져오기와 관련된 비즈니스 로직을 담당합니다.
-    *   일반 검색(`naverSearch`, `daumSearch` 등)의 경우 `src/crawlers/crawlerFactory.js`의 `createCrawler` 함수를 사용하여 현재 설정에 맞는 크롤러(Puppeteer 또는 Selenium) 인스턴스를 동적으로 생성하고, `getRawHtml` 메서드를 사용합니다.
+    *   일반 검색(`naverSearch`, `daumSearch`, `baiduSearch` 등)의 경우 `src/crawlers/crawlerFactory.js`의 `createCrawler` 함수를 사용하여 현재 설정에 맞는 크롤러(Puppeteer 또는 Selenium) 인스턴스를 동적으로 생성하고, `getRawHtml` 메서드를 사용합니다.
     *   Google 검색(`googleSearch`)의 경우, `src/crawlers/humanLikeGoogleCrawler.js`의 `HumanLikeGoogleCrawler` 인스턴스를 직접 생성하고, `searchAndGetResults` 메서드를 사용하여 "인간처럼" 검색을 수행합니다. 이 크롤러는 검색어 입력, 버튼 클릭 등의 상호작용을 시뮬레이션합니다.
     *   `src/utils/htmlParser.js`의 `cleanHtml` 함수를 사용하여 HTML에서 불필요한 태그를 제거하고 텍스트 콘텐츠를 추출합니다.
-    *   `naverSearch(query, includeHtml)`, `daumSearch(query, includeHtml)`, `bingSearch(query, includeHtml)`, `nateSearch(query, includeHtml)`, `googleSearch(query, includeHtml)` 함수는 각 검색 엔진의 검색 결과를 가져와 처리합니다.
+    *   `naverSearch(query, includeHtml)`, `daumSearch(query, includeHtml)`, `bingSearch(query, includeHtml)`, `nateSearch(query, includeHtml)`, `googleSearch(query, includeHtml)`, `baiduSearch(query, includeHtml)`, `yahooJapanSearch(query, includeHtml)`, `yahooSearch(query, includeHtml)`, `yandexSearch(query, includeHtml)` 함수는 각 검색 엔진의 검색 결과를 가져와 처리합니다.
     *   `fetchUrlContent(url)` 함수는 지정된 URL의 텍스트 콘텐츠를 가져와 처리합니다.
     *   각 함수 실행 후 크롤러 인스턴스의 `close()` 메서드를 호출하여 리소스를 정리합니다.
 *   📦 **`src/services/integratedSearchService.js`**:
-    *   `searchService.js`의 개별 검색 함수들(Naver, Daum, Bing, Nate, Google - Google 포함 여부 결정 필요)을 병렬로 호출하여 검색 결과를 통합하는 로직을 담당합니다.
+    *   `searchService.js`의 개별 검색 함수들(Naver, Daum, Bing, Nate, Google, Baidu, Yahoo Japan, Yahoo, Yandex - 포함 여부 결정 필요)을 병렬로 호출하여 검색 결과를 통합하는 로직을 담당합니다.
     *   `Promise.all`을 사용하여 비동기 검색 작업을 효율적으로 처리합니다.
     *   개별 검색 실패 시에도 전체 통합 검색이 중단되지 않도록 오류를 처리하고, 실패 정보를 결과에 포함합니다.
 
@@ -148,10 +157,17 @@ mcp-search-server/
     }
     ```
 
-### 3.x. 🛠️ `googleSearch` 도구 (`src/tools/googleSearchTool.js`)
+### 3.x. 🛠️ `googleSearch` 도구 (`src/tools/googleSearchTool.js`) (및 기타 신규 검색 도구들)
 
-*   🎯 **목적**: 사용자가 제공한 검색어(`query`)로 Google 웹 검색을 수행하고, HTML 태그 포함 여부(`includeHtml`)에 따라 처리된 결과를 반환합니다. 이 도구는 `HumanLikeGoogleCrawler`를 사용하여 검색 페이지와 "인간처럼" 상호작용(검색어 입력, 버튼 클릭 등)합니다. (내부적으로 `searchService.googleSearch` 호출)
-*   📜 **설명**: `Google 검색 (인간과 유사한 행동)`
+*   **`googleSearchTool.js`**: Google 검색 (인간과 유사한 행동)
+*   **`baiduSearchTool.js`**: Baidu 검색 (중국어 쿼리 권장)
+*   **`yahooJapanSearchTool.js`**: Yahoo! JAPAN 검색 (일본어/영어 쿼리 권장)
+*   **`yahooSearchTool.js`**: Yahoo.com 검색 (영어 쿼리 권장)
+*   **`yandexSearchTool.js`**: Yandex 검색 (러시아어 쿼리 권장)
+
+각 도구는 유사한 구조를 가집니다:
+*   🎯 **목적**: 해당 검색 엔진에서 웹 검색을 수행하고, HTML 태그 포함 여부(`includeHtml`)에 따라 처리된 결과를 반환합니다. (내부적으로 `searchService`의 해당 검색 함수 호출)
+*   📜 **설명**: 각 검색 엔진의 특성을 반영한 설명 (예: `Baidu 검색을 수행하고 결과를 반환합니다. 중국어 번역된 검색어 사용이 권장됩니다.`)
 *   📥 **입력 스키마 (`zod`):**
     ```javascript
     z.object({
@@ -161,18 +177,20 @@ mcp-search-server/
     ```
 *   🧠 **핸들러 로직:**
     1.  `logger.cjs`를 사용하여 함수 실행 정보, 입력 파라미터, 결과 및 오류를 기록합니다.
-    2.  입력으로 받은 `query`와 `includeHtml` 값을 `searchService.googleSearch` 함수에 전달하여 호출합니다.
+    2.  입력으로 받은 `query`와 `includeHtml` 값을 해당 `searchService`의 검색 함수 (예: `searchService.googleSearch`, `searchService.baiduSearch`)에 전달하여 호출합니다.
     3.  `searchService`로부터 받은 결과 객체를 JSON 문자열로 변환하여 MCP 콘텐츠 구조(`{ type: "text", text: "..." }`)로 포맷합니다.
     4.  성공 시 포맷된 콘텐츠를 반환하고, 예외 발생 시 오류를 전파하여 `server.js`의 오류 처리기에서 처리하도록 합니다.
-*   ✅ **출력 (성공 시 MCP 응답의 `result.content[0].text` 내부 JSON 구조 예시):**
+*   ✅ **출력 (성공 시 MCP 응답의 `result.content[0].text` 내부 JSON 구조 예시 - Google 예시):**
     ```json
     {
-      "query": "사용자 검색어",
-      "resultText": "Google 검색 결과 (HTML 태그 포함 또는 제거됨)",
+      "query": "번역된 검색어 (필요시)",
+      "originalQuery": "원본 사용자 검색어 (번역된 경우)",
+      "resultText": "검색 결과 (HTML 태그 포함 또는 제거됨)",
       "retrievedAt": "2024-01-01T12:00:00.000Z",
-      "searchEngine": "google"
+      "searchEngine": "google" // 또는 "baidu", "yahoo_japan" 등
     }
     ```
+    *   **참고**: Baidu, Yahoo Japan, Yahoo, Yandex의 경우, `searchService`에서 번역 플레이스홀더가 사용되므로 `query` 필드에 `(언어: ...)`와 같은 접미사가 붙을 수 있으며, `originalQuery` 필드에 원본 검색어가 포함됩니다.
 
 ### 3.2. 🛠️ `daumSearch` 도구 (`src/tools/daumSearchTool.js`)
 
@@ -312,6 +330,13 @@ mcp-search-server/
 *   **Daum 검색 관련**: `DAUM_SEARCH_BASE_URL`, `DAUM_SEARCH_REFERER`
 *   **Bing 검색 관련**: `BING_SEARCH_BASE_URL`, `BING_SEARCH_REFERER`
 *   **Nate 검색 관련**: `NATE_SEARCH_BASE_URL`, `NATE_SEARCH_REFERER`
+*   **Google 검색 관련 (`googleSearch`)**:
+    *   `GOOGLE_SEARCH_BASE_URL`: Google 검색 페이지 URL (예: `https://www.google.com`).
+    *   `GOOGLE_SEARCH_REFERER`: Google 검색 시 사용할 Referer.
+*   **Baidu 검색 관련**: `BAIDU_SEARCH_BASE_URL`, `BAIDU_SEARCH_REFERER`
+*   **Yahoo Japan 검색 관련**: `YAHOO_JAPAN_SEARCH_BASE_URL`, `YAHOO_JAPAN_SEARCH_REFERER`
+*   **Yahoo 검색 관련**: `YAHOO_SEARCH_BASE_URL`, `YAHOO_SEARCH_REFERER`
+*   **Yandex 검색 관련**: `YANDEX_SEARCH_BASE_URL`, `YANDEX_SEARCH_REFERER`
 *   **Google 검색 관련 (`googleSearch`)**:
     *   `GOOGLE_SEARCH_BASE_URL`: Google 검색 페이지 URL (예: `https://www.google.com`).
     *   `GOOGLE_SEARCH_REFERER`: Google 검색 시 사용할 Referer.

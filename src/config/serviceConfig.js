@@ -14,6 +14,15 @@ const NATE_SEARCH_BASE_URL =
   'https://search.daum.net/nate?w=tot&DA=SBC&q=';
 const GOOGLE_SEARCH_BASE_URL =
   process.env.GOOGLE_SEARCH_BASE_URL || 'https://www.google.com'; // Google 검색 페이지 URL
+const BAIDU_SEARCH_BASE_URL =
+  process.env.BAIDU_SEARCH_BASE_URL || 'https://www.baidu.com/s?wd=';
+const YAHOO_JAPAN_SEARCH_BASE_URL =
+  process.env.YAHOO_JAPAN_SEARCH_BASE_URL ||
+  'https://search.yahoo.co.jp/search?p=';
+const YAHOO_SEARCH_BASE_URL =
+  process.env.YAHOO_SEARCH_BASE_URL || 'https://search.yahoo.com/search?p=';
+const YANDEX_SEARCH_BASE_URL =
+  process.env.YANDEX_SEARCH_BASE_URL || 'https://yandex.com/search/?text=';
 
 // 환경 변수 getter 함수 (타입 변환 및 기본값 처리)
 const getEnv = (key, defaultValue, type = 'string') => {
@@ -73,6 +82,22 @@ export const serviceConfig = {
     searchButtonSelector: getEnv('GOOGLE_SEARCH_BUTTON_SELECTOR', 'input[name="btnK"], button[name="btnK"]'), // 검색 버튼 CSS 선택자
     timeout: 60000, // 60초로 상향
     waitUntil: 'domcontentloaded',
+  },
+  baiduSearch: {
+    baseUrl: BAIDU_SEARCH_BASE_URL,
+    referer: getEnv('BAIDU_SEARCH_REFERER', 'https://www.baidu.com/'),
+  },
+  yahooJapanSearch: {
+    baseUrl: YAHOO_JAPAN_SEARCH_BASE_URL,
+    referer: getEnv('YAHOO_JAPAN_SEARCH_REFERER', 'https://www.yahoo.co.jp/'),
+  },
+  yahooSearch: {
+    baseUrl: YAHOO_SEARCH_BASE_URL,
+    referer: getEnv('YAHOO_SEARCH_REFERER', 'https://www.yahoo.com/'),
+  },
+  yandexSearch: {
+    baseUrl: YANDEX_SEARCH_BASE_URL,
+    referer: getEnv('YANDEX_SEARCH_REFERER', 'https://yandex.com/'),
   },
   crawler: {
     // 사용할 크롤러 유형: 'puppeteer' 또는 'selenium'

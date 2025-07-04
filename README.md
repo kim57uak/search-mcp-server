@@ -1,12 +1,15 @@
-# MCP Naver Search Server (Node.js)
+# MCP Search Server (Node.js)
 
-Naver 웹 검색 기능을 제공하는 모델 컨텍스트 프로토콜(MCP)을 구현한 Node.js 서버입니다. 이 프로젝트는 `@modelcontextprotocol/sdk`를 사용하여 MCP 호환 도구를 노출합니다.
+다양한 웹 검색 기능을 제공하는 모델 컨텍스트 프로토콜(MCP)을 구현한 Node.js 서버입니다. 이 프로젝트는 `@modelcontextprotocol/sdk`를 사용하여 MCP 호환 도구를 노출합니다.
 
 ## ✨ 주요 기능
 
-*   **Naver 웹 검색 도구:**
-    *   주어진 검색어에 대한 Naver 검색을 수행합니다.
+*   **다중 검색 엔진 지원:** Naver, Daum, Bing, Nate, Google, Baidu, Yahoo Japan, Yahoo, Yandex 검색을 지원합니다.
+*   **웹 검색 도구:**
+    *   주어진 검색어에 대한 웹 검색을 수행합니다.
     *   검색 결과에서 HTML 태그를 포함하거나 제거하는 옵션을 제공합니다.
+*   **URL 콘텐츠 가져오기:** 지정된 URL의 웹 페이지 콘텐츠를 가져옵니다.
+*   **통합 검색:** 여러 검색 엔진에서 동시에 검색하고 결과를 통합합니다.
 *   **MCP 호환:** `@modelcontextprotocol/sdk`를 사용하여 MCP 표준을 따르는 도구를 제공합니다.
 *   **설정 가능:** `src/config/serviceConfig.js`를 통해 서비스 설정을 관리합니다.
 *   **구조화된 로깅:** `winston`을 활용하여 상세한 로그를 제공합니다.
@@ -88,7 +91,75 @@ MCP SDK는 `package.json` 파일에 프로젝트 종속성으로 나열되어 �
     }
     ```
 
-### 4. `nateSearch`
+### 2. `baiduSearch`
+
+*   **설명:** Baidu 웹 검색을 수행하고 결과를 반환합니다. 중국어로 번역된 검색어 사용이 권장됩니다. HTML 태그 포함 여부를 선택할 수 있습니다.
+*   **입력 (`inputs`):**
+    *   `query` (string, 필수): 검색할 단어나 문장입니다.
+    *   `includeHtml` (boolean, 선택, 기본값: `false`): HTML 태그 포함 여부.
+*   **예상 출력 (MCP 응답의 `result.content[0].text` 내부 JSON 문자열):**
+    ```json
+    {
+      "query": "번역된 중국어 검색어",
+      "originalQuery": "원본 검색어",
+      "resultText": "Baidu 검색 결과 내용...",
+      "retrievedAt": "YYYY-MM-DDTHH:mm:ss.sssZ",
+      "searchEngine": "baidu"
+    }
+    ```
+
+### 3. `yahooJapanSearch`
+
+*   **설명:** Yahoo! JAPAN 웹 검색을 수행하고 결과를 반환합니다. 일본어 또는 영어로 번역된 검색어 사용이 권장됩니다. HTML 태그 포함 여부를 선택할 수 있습니다.
+*   **입력 (`inputs`):**
+    *   `query` (string, 필수): 검색할 단어나 문장입니다.
+    *   `includeHtml` (boolean, 선택, 기본값: `false`): HTML 태그 포함 여부.
+*   **예상 출력 (MCP 응답의 `result.content[0].text` 내부 JSON 문자열):**
+    ```json
+    {
+      "query": "번역된 일본어/영어 검색어",
+      "originalQuery": "원본 검색어",
+      "resultText": "Yahoo! JAPAN 검색 결과 내용...",
+      "retrievedAt": "YYYY-MM-DDTHH:mm:ss.sssZ",
+      "searchEngine": "yahoo_japan"
+    }
+    ```
+
+### 4. `yahooSearch`
+
+*   **설명:** Yahoo.com (영어권) 웹 검색을 수행하고 결과를 반환합니다. 영어로 번역된 검색어 사용이 권장됩니다. HTML 태그 포함 여부를 선택할 수 있습니다.
+*   **입력 (`inputs`):**
+    *   `query` (string, 필수): 검색할 단어나 문장입니다.
+    *   `includeHtml` (boolean, 선택, 기본값: `false`): HTML 태그 포함 여부.
+*   **예상 출력 (MCP 응답의 `result.content[0].text` 내부 JSON 문자열):**
+    ```json
+    {
+      "query": "번역된 영어 검색어",
+      "originalQuery": "원본 검색어",
+      "resultText": "Yahoo.com 검색 결과 내용...",
+      "retrievedAt": "YYYY-MM-DDTHH:mm:ss.sssZ",
+      "searchEngine": "yahoo"
+    }
+    ```
+
+### 5. `yandexSearch`
+
+*   **설명:** Yandex 웹 검색을 수행하고 결과를 반환합니다. 러시아어로 번역된 검색어 사용이 권장됩니다. HTML 태그 포함 여부를 선택할 수 있습니다.
+*   **입력 (`inputs`):**
+    *   `query` (string, 필수): 검색할 단어나 문장입니다.
+    *   `includeHtml` (boolean, 선택, 기본값: `false`): HTML 태그 포함 여부.
+*   **예상 출력 (MCP 응답의 `result.content[0].text` 내부 JSON 문자열):**
+    ```json
+    {
+      "query": "번역된 러시아어 검색어",
+      "originalQuery": "원본 검색어",
+      "resultText": "Yandex 검색 결과 내용...",
+      "retrievedAt": "YYYY-MM-DDTHH:mm:ss.sssZ",
+      "searchEngine": "yandex"
+    }
+    ```
+
+### (기존) 2. `daumSearch`
 
 *   **설명:** Nate 웹 검색을 수행하고 결과를 반환합니다. HTML 태그 포함 여부를 선택할 수 있습니다.
 *   **입력 (`inputs`):**
