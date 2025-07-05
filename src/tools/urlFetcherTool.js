@@ -6,35 +6,49 @@ import logger from '../utils/logger.cjs';
 export const urlFetcherTool = {
   name: 'fetchUrl',
   description:
-    '제공된 URL의 웹 페이지 콘텐츠를 가져와 주요 텍스트를 추출합니다. 콘텐츠의 언어는 해당 URL의 웹 페이지에 따라 다릅니다.',
+    '제공된 URL의 웹 페이지 콘텐츠를 가져옵니다. 선택적으로 검색어(query)를 제공하면, 해당 URL에 검색어를 추가하여 요청하고 그 결과를 반환합니다. (예: URL이 검색 엔진의 기본 URL일 경우, query를 추가하여 검색 실행)',
   inputSchema: {
     url: z.string().url({ message: '유효한 URL을 입력해야 합니다.' }),
+    query: z.string().optional(), // 검색어 (선택 사항)
+    queryParamName: z.string().optional().default('q'), // 검색어를 전달할 URL 파라미터 이름 (기본값 'q')
+    includeHtml: z.boolean().optional().default(false), // HTML 태그 포함 여부
   },
-  async handler({ url }) {
-    logger.info(`[UrlFetcherTool] Executing with URL: "${url}"`);
+  async handler({ url, query, queryParamName, includeHtml }) {
+    let targetUrl = url;
+    let executionType = 'content fetch';
+
+    if (query && query.trim() !== '') {
+      executionType = 'custom URL search';
+      try {
+        const urlObject = new URL(url);
+        // 기존 쿼리 파라미터는 유지하면서 새 검색어를 추가하거나 덮어씁니다.
+        urlObject.searchParams.set(queryParamName, query);
+        targetUrl = urlObject.toString();
+      } catch (e) {
+        logger.error(`[UrlFetcherTool] Invalid base URL provided for custom search: "${url}"`, { error: e });
+        throw new Error(`커스텀 검색을 위한 기본 URL이 잘못되었습니다: ${url}`);
+      }
+    }
+
+    logger.info(`[UrlFetcherTool] Executing ${executionType}. Target URL: "${targetUrl}", IncludeHTML: ${includeHtml}`);
 
     try {
-      const result = await fetchUrlContent(url);
-      logger.info(`[UrlFetcherTool] Successfully executed for URL: "${url}"`);
+      // searchService.fetchUrlContent는 이제 includeHtml 파라미터를 받습니다.
+      const result = await fetchUrlContent(targetUrl, includeHtml);
+      logger.info(`[UrlFetcherTool] Successfully executed ${executionType} for target URL: "${targetUrl}"`);
       return {
         content: [
           {
             type: 'text',
-            text: JSON.stringify(result),
+            text: JSON.stringify({ ...result, originalUrl: url, queryUsed: query, targetUrl }),
           },
         ],
       };
     } catch (error) {
       logger.error(
-        `[UrlFetcherTool] Error executing for URL "${url}": ${error.message}`,
-        { error: error.stack },
+        `[UrlFetcherTool] Error executing ${executionType} for target URL "${targetUrl}": ${error.message}`,
+        { error: error.stack, originalUrl: url, queryUsed: query },
       );
-      // MCP SDK 표준 오류 형식 또는 throw error
-      // throw error; // searchService에서 이미 적절한 오류 메시지를 포함하여 throw 하고 있음
-      // searchService에서 throw된 오류를 그대로 전달하여 server.js의 최상위 오류 처리기가 처리하도록 합니다.
-      // 또는, 여기서 MCP 표준 오류 객체로 변환하여 반환할 수도 있습니다.
-      // 예: return { error: { message: error.message, code: 'URL_FETCH_FAILED' } };
-      // 현재는 searchService의 오류를 그대로 throw 합니다.
       throw error;
     }
   },

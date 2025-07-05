@@ -4,14 +4,20 @@
 
 ## ✨ 주요 기능
 
-*   **다중 검색 엔진 지원:** Naver, Daum, Bing, Nate, Google, Baidu, Yahoo Japan, Yahoo, Yandex 검색을 지원합니다.
-*   **웹 검색 도구:**
-    *   주어진 검색어에 대한 웹 검색을 수행합니다.
+*   **유연한 검색 엔진 지원:** `search_engines.json` 파일을 통해 다양한 검색 엔진 설정을 지원하며, 특정 엔진 검색 및 여러 엔진 통합 검색이 가능합니다.
+*   **일반 웹 검색 도구 (`search`):**
+    *   주어진 검색어에 대해 특정 검색 엔진 또는 여러 엔진에서 웹 검색을 수행합니다.
     *   검색 결과에서 HTML 태그를 포함하거나 제거하는 옵션을 제공합니다.
-*   **URL 콘텐츠 가져오기:** 지정된 URL의 웹 페이지 콘텐츠를 가져옵니다.
-*   **통합 검색:** 여러 검색 엔진에서 동시에 검색하고 결과를 통합합니다.
+    *   언어 코드를 지정하여 해당 언어를 지원하는 엔진을 대상으로 검색할 수 있습니다.
+*   **특수 Google 검색 도구 (`googleSearch`):**
+    *   CAPTCHA 우회를 시도하는 `HumanLikeGoogleCrawler`를 사용하여 Google 검색을 수행합니다.
+*   **URL 콘텐츠 가져오기 및 사용자 정의 URL 검색 (`fetchUrl`):**
+    *   지정된 URL의 웹 페이지 콘텐츠를 가져옵니다.
+    *   URL과 함께 검색어 및 검색 파라미터 이름을 제공하여, 해당 URL 기반으로 사용자 정의 검색을 실행할 수 있습니다.
 *   **MCP 호환:** `@modelcontextprotocol/sdk`를 사용하여 MCP 표준을 따르는 도구를 제공합니다.
-*   **설정 가능:** `src/config/serviceConfig.js`를 통해 서비스 설정을 관리합니다.
+*   **설정 가능:**
+    *   검색 엔진 관련 설정: `search_engines.json` (엔진별 URL, 쿼리 파라미터 등)
+    *   서비스 및 크롤러 설정: `src/config/serviceConfig.js` (크롤러 타입, 상세 옵션, Google UI 선택자 등)
 *   **구조화된 로깅:** `winston`을 활용하여 상세한 로그를 제공합니다.
 *   **SOLID 설계 원칙:** 유지보수성과 확장성을 고려하여 개발되었습니다.
 
@@ -24,6 +30,7 @@ MCP SDK는 `package.json` 파일에 프로젝트 종속성으로 나열되어 �
 ## 🚀 시작하기
 
 서버 설정 및 실행을 시작하려면 **[INSTALL.md](INSTALL.md)**를 참조하십시오.
+`search_engines.json` 파일을 통해 사용할 검색 엔진을 설정할 수 있습니다.
 
 ## 📄 개발자 문서
 
@@ -31,266 +38,79 @@ MCP SDK는 `package.json` 파일에 프로젝트 종속성으로 나열되어 �
 
 ## 🛠️ 사용 가능한 MCP 도구
 
-### 1. `naverSearch`
+### 1. `search` (일반 검색)
 
-*   **설명:** Naver 웹 검색을 수행하고 결과를 반환합니다. HTML 태그 포함 여부를 선택할 수 있습니다.
+*   **설명:** 웹 검색을 수행합니다. `engineName`으로 특정 검색 엔진을 지정하거나, `languageCode`를 제공하여 해당 언어를 지원하는 여러 엔진에서 검색할 수 있습니다. `engineName`이 지정되지 않으면 `languageCode`를 기반으로 (또는 모든) 사용 가능한 여러 엔진에서 통합 검색을 시도합니다. (`search_engines.json`에 정의된 엔진 사용)
 *   **입력 (`inputs`):**
-    *   `query` (string, 필수): 검색할 단어나 문장입니다. (공백만으로는 안됨)
+    *   `query` (string, 필수): 검색할 단어나 문장입니다.
+    *   `engineName` (string, 선택): 검색을 수행할 특정 엔진의 이름입니다 (예: "Naver", "Bing". `search_engines.json` 파일 참고).
+    *   `languageCode` (string, 선택): 검색 결과의 언어를 지정하거나, 통합 검색 시 해당 언어를 지원하는 엔진을 필터링하는 데 사용됩니다 (예: "ko", "en").
     *   `includeHtml` (boolean, 선택, 기본값: `false`): `true`로 설정하면 결과에 HTML 태그를 포함하고, `false`이면 제거된 텍스트만 반환합니다.
 *   **예상 출력 (MCP 응답의 `result.content[0].text` 내부 JSON 문자열):**
-    ```json
-    {
-      "query": "검색어",
-      "resultText": "Naver 검색 결과 내용 (HTML 포함 또는 제거됨)",
-      "retrievedAt": "YYYY-MM-DDTHH:mm:ss.sssZ"
-    }
-    ```
-*   **호출 예시 (Stdio - 서버의 표준 입력으로 JSON 전송):**
-    서버 실행 후, 다음 JSON 요청을 표준 입력으로 전달합니다.
-    ```json
-    {
-      "tool": "naverSearch",
-      "inputs": {
-        "query": "Node.js MCP",
-        "includeHtml": false
-      },
-      "id": "readme-example-01"
-    }
-    ```
-    서버는 표준 출력으로 MCP 응답을 반환합니다. 자세한 요청/응답 방법은 [INSTALL.md](INSTALL.md)를 참조하십시오.
-
-### 2. `baiduSearch`
-
-*   **설명:** 중국 Baidu 검색엔진을 사용하여 검색을 수행하고 그 결과를 반환합니다. 입력 검색어는 중국어로 번역되어야 하며 (현재 placeholder로 처리), 검색 결과는 주로 중국어로 제공됩니다. HTML 태그 포함 여부를 선택할 수 있습니다.
-*   **입력 (`inputs`):**
-    *   `query` (string, 필수): 검색할 단어나 문장입니다.
-    *   `includeHtml` (boolean, 선택, 기본값: `false`): HTML 태그 포함 여부.
-*   **예상 출력 (MCP 응답의 `result.content[0].text` 내부 JSON 문자열):**
-    ```json
-    {
-      "query": "번역된 중국어 검색어",
-      "originalQuery": "원본 검색어",
-      "resultText": "Baidu 검색 결과 내용...",
-      "retrievedAt": "YYYY-MM-DDTHH:mm:ss.sssZ",
-      "searchEngine": "baidu"
-    }
-    ```
-
-### 3. `yahooJapanSearch`
-
-*   **설명:** Yahoo! JAPAN 검색엔진을 사용하여 검색을 수행하고 그 결과를 반환합니다. 입력 검색어는 일본어 또는 영어로 번역되어야 하며 (현재 placeholder로 처리), 검색 결과는 주로 일본어로 제공됩니다. HTML 태그 포함 여부를 선택할 수 있습니다.
-*   **입력 (`inputs`):**
-    *   `query` (string, 필수): 검색할 단어나 문장입니다.
-    *   `includeHtml` (boolean, 선택, 기본값: `false`): HTML 태그 포함 여부.
-*   **예상 출력 (MCP 응답의 `result.content[0].text` 내부 JSON 문자열):**
-    ```json
-    {
-      "query": "번역된 일본어/영어 검색어",
-      "originalQuery": "원본 검색어",
-      "resultText": "Yahoo! JAPAN 검색 결과 내용...",
-      "retrievedAt": "YYYY-MM-DDTHH:mm:ss.sssZ",
-      "searchEngine": "yahoo_japan"
-    }
-    ```
-
-### 4. `yahooSearch`
-
-*   **설명:** Yahoo.com (글로벌/영어권) 검색엔진을 사용하여 검색을 수행하고 그 결과를 반환합니다. 입력 검색어는 영어로 번역되어야 하며 (현재 placeholder로 처리), 검색 결과는 주로 영어로 제공됩니다. HTML 태그 포함 여부를 선택할 수 있습니다.
-*   **입력 (`inputs`):**
-    *   `query` (string, 필수): 검색할 단어나 문장입니다.
-    *   `includeHtml` (boolean, 선택, 기본값: `false`): HTML 태그 포함 여부.
-*   **예상 출력 (MCP 응답의 `result.content[0].text` 내부 JSON 문자열):**
-    ```json
-    {
-      "query": "번역된 영어 검색어",
-      "originalQuery": "원본 검색어",
-      "resultText": "Yahoo.com 검색 결과 내용...",
-      "retrievedAt": "YYYY-MM-DDTHH:mm:ss.sssZ",
-      "searchEngine": "yahoo"
-    }
-    ```
-
-### 5. `yandexSearch`
-
-*   **설명:** 러시아 Yandex 검색엔진을 사용하여 검색을 수행하고 그 결과를 반환합니다. 입력 검색어는 러시아어로 번역되어야 하며 (현재 placeholder로 처리), 검색 결과는 주로 러시아어로 제공됩니다. HTML 태그 포함 여부를 선택할 수 있습니다.
-*   **입력 (`inputs`):**
-    *   `query` (string, 필수): 검색할 단어나 문장입니다.
-    *   `includeHtml` (boolean, 선택, 기본값: `false`): HTML 태그 포함 여부.
-*   **예상 출력 (MCP 응답의 `result.content[0].text` 내부 JSON 문자열):**
-    ```json
-    {
-      "query": "번역된 러시아어 검색어",
-      "originalQuery": "원본 검색어",
-      "resultText": "Yandex 검색 결과 내용...",
-      "retrievedAt": "YYYY-MM-DDTHH:mm:ss.sssZ",
-      "searchEngine": "yandex"
-    }
-    ```
-
-### 기존 순서 유지하며 번호 업데이트:
-### 6. `daumSearch` (기존 2번)
-
-*   **설명:** Daum 웹 검색을 수행하고 결과를 반환합니다. HTML 태그 포함 여부를 선택할 수 있습니다. (결과는 주로 한국어)
-*   **입력 (`inputs`):**
-    *   `query` (string, 필수): 검색할 단어나 문장입니다. (공백만으로는 안됨)
-    *   `includeHtml` (boolean, 선택, 기본값: `false`): `true`로 설정하면 결과에 HTML 태그를 포함하고, `false`이면 제거된 텍스트만 반환합니다.
-*   **예상 출력 (MCP 응답의 `result.content[0].text` 내부 JSON 문자열):**
-    ```json
-    {
-      "query": "검색어",
-      "resultText": "Daum 검색 결과 내용 (HTML 포함 또는 제거됨)",
-      "retrievedAt": "YYYY-MM-DDTHH:mm:ss.sssZ",
-      "searchEngine": "daum"
-    }
-    ```
-
-### 7. `bingSearch` (기존 3번)
-
-*   **설명:** Bing 웹 검색을 수행하고 결과를 반환합니다. HTML 태그 포함 여부를 선택할 수 있습니다. (결과 언어는 Bing 설정 및 검색어에 따라 다름)
-*   **입력 (`inputs`):**
-    *   `query` (string, 필수): 검색할 단어나 문장입니다. (공백만으로는 안됨)
-    *   `includeHtml` (boolean, 선택, 기본값: `false`): `true`로 설정하면 결과에 HTML 태그를 포함하고, `false`이면 제거된 텍스트만 반환합니다.
-*   **예상 출력 (MCP 응답의 `result.content[0].text` 내부 JSON 문자열):**
-    ```json
-    {
-      "query": "검색어",
-      "resultText": "Bing 검색 결과 내용 (HTML 포함 또는 제거됨)",
-      "retrievedAt": "YYYY-MM-DDTHH:mm:ss.sssZ",
-      "searchEngine": "bing"
-    }
-    ```
-
-### 8. `nateSearch` (기존 4번)
-
-*   **설명:** Nate 웹 검색을 수행하고 결과를 반환합니다. HTML 태그 포함 여부를 선택할 수 있습니다. (결과는 주로 한국어)
-*   **입력 (`inputs`):**
-    *   `query` (string, 필수): 검색할 단어나 문장입니다.
-    *   `includeHtml` (boolean, 선택, 기본값: `false`): HTML 태그 포함 여부.
-*   **예상 출력 (MCP 응답의 `result.content[0].text` 내부 JSON 문자열):**
-    ```json
-    {
-      "query": "번역된 중국어 검색어",
-      "originalQuery": "원본 검색어",
-      "resultText": "Baidu 검색 결과 내용...",
-      "retrievedAt": "YYYY-MM-DDTHH:mm:ss.sssZ",
-      "searchEngine": "baidu"
-    }
-    ```
-
-### 3. `yahooJapanSearch`
-
-*   **설명:** Yahoo! JAPAN 웹 검색을 수행하고 결과를 반환합니다. 일본어 또는 영어로 번역된 검색어 사용이 권장됩니다. HTML 태그 포함 여부를 선택할 수 있습니다.
-*   **입력 (`inputs`):**
-    *   `query` (string, 필수): 검색할 단어나 문장입니다.
-    *   `includeHtml` (boolean, 선택, 기본값: `false`): HTML 태그 포함 여부.
-*   **예상 출력 (MCP 응답의 `result.content[0].text` 내부 JSON 문자열):**
-    ```json
-    {
-      "query": "번역된 일본어/영어 검색어",
-      "originalQuery": "원본 검색어",
-      "resultText": "Yahoo! JAPAN 검색 결과 내용...",
-      "retrievedAt": "YYYY-MM-DDTHH:mm:ss.sssZ",
-      "searchEngine": "yahoo_japan"
-    }
-    ```
-
-### 4. `yahooSearch`
-
-*   **설명:** Yahoo.com (영어권) 웹 검색을 수행하고 결과를 반환합니다. 영어로 번역된 검색어 사용이 권장됩니다. HTML 태그 포함 여부를 선택할 수 있습니다.
-*   **입력 (`inputs`):**
-    *   `query` (string, 필수): 검색할 단어나 문장입니다.
-    *   `includeHtml` (boolean, 선택, 기본값: `false`): HTML 태그 포함 여부.
-*   **예상 출력 (MCP 응답의 `result.content[0].text` 내부 JSON 문자열):**
-    ```json
-    {
-      "query": "번역된 영어 검색어",
-      "originalQuery": "원본 검색어",
-      "resultText": "Yahoo.com 검색 결과 내용...",
-      "retrievedAt": "YYYY-MM-DDTHH:mm:ss.sssZ",
-      "searchEngine": "yahoo"
-    }
-    ```
-
-### 5. `yandexSearch`
-
-*   **설명:** Yandex 웹 검색을 수행하고 결과를 반환합니다. 러시아어로 번역된 검색어 사용이 권장됩니다. HTML 태그 포함 여부를 선택할 수 있습니다.
-*   **입력 (`inputs`):**
-    *   `query` (string, 필수): 검색할 단어나 문장입니다.
-    *   `includeHtml` (boolean, 선택, 기본값: `false`): HTML 태그 포함 여부.
-*   **예상 출력 (MCP 응답의 `result.content[0].text` 내부 JSON 문자열):**
-    ```json
-    {
-      "query": "번역된 러시아어 검색어",
-      "originalQuery": "원본 검색어",
-      "resultText": "Yandex 검색 결과 내용...",
-      "retrievedAt": "YYYY-MM-DDTHH:mm:ss.sssZ",
-      "searchEngine": "yandex"
-    }
-    ```
-
-### (기존) 2. `daumSearch`
-
-*   **설명:** Nate 웹 검색을 수행하고 결과를 반환합니다. HTML 태그 포함 여부를 선택할 수 있습니다.
-*   **입력 (`inputs`):**
-    *   `query` (string, 필수): 검색할 단어나 문장입니다. (공백만으로는 안됨)
-    *   `includeHtml` (boolean, 선택, 기본값: `false`): `true`로 설정하면 결과에 HTML 태그를 포함하고, `false`이면 제거된 텍스트만 반환합니다.
-*   **예상 출력 (MCP 응답의 `result.content[0].text` 내부 JSON 문자열):**
-    ```json
-    {
-      "query": "검색어",
-      "resultText": "Nate 검색 결과 내용 (HTML 포함 또는 제거됨)",
-      "retrievedAt": "YYYY-MM-DDTHH:mm:ss.sssZ",
-      "searchEngine": "nate"
-    }
-    ```
-
-### 9. `integratedSearch` (기존 5번 또는 4번 - 번호 정리)
-
-*   **설명:** 활성화된 여러 검색 엔진(예: Google, Baidu 등)에서 동시에 검색을 수행하고 통합된 결과를 반환합니다. 각 검색 결과의 언어는 해당 검색 엔진의 특성을 따릅니다. HTML 태그 포함 여부를 선택할 수 있습니다.
-*   **입력 (`inputs`):**
-    *   `query` (string, 필수): 검색할 단어나 문장입니다. (공백만으로는 안됨)
-    *   `includeHtml` (boolean, 선택, 기본값: `false`): `true`로 설정하면 결과에 HTML 태그를 포함하고, `false`이면 제거된 텍스트만 반환합니다.
-*   **예상 출력 (MCP 응답의 `result.content[0].text` 내부 JSON 문자열):**
-    ```json
-    {
-      "query": "원본 검색어", // 또는 번역된 검색어 (일관성 필요)
-      "results": [
+    *   특정 엔진 검색 시 (`engineName` 제공):
+        ```json
         {
-          "query": "번역된 검색어 (필요시)",
-          "originalQuery": "원본 검색어 (번역된 경우)",
-          "resultText": "각 엔진 검색 결과 내용...",
+          "query": "검색어",
+          "engine": "엔진이름",
+          "language": "언어코드", // 제공된 경우
+          "resultText": "검색 결과 내용 (HTML 포함 또는 제거됨)",
           "retrievedAt": "YYYY-MM-DDTHH:mm:ss.sssZ",
-          "searchEngine": "엔진명"
+          "searchUrl": "실제요청된검색URL"
         }
-        // ... 다른 엔진 결과들
-        // 또는 검색 실패 시
-        // {
-        //   "error": "엔진명 search failed",
-        //   "details": "오류 상세 메시지",
-        //   "searchEngine": "엔진명"
-        // }
-      ],
-      "retrievedAt": "YYYY-MM-DDTHH:mm:ss.sssZ"
-    }
-    ```
-*   **호출 예시 (Stdio - 서버의 표준 입력으로 JSON 전송):**
-    ```json
-    {
-      "tool": "integratedSearch",
-      "inputs": {
-        "query": "오늘의 날씨",
-        "includeHtml": false
-      },
-      "id": "readme-example-integrated"
-    }
-    ```
+        ```
+    *   통합 검색 시 (`engineName` 미제공):
+        ```json
+        [ // 여러 엔진 결과의 배열
+          {
+            "query": "검색어",
+            "searchEngine": "엔진이름1",
+            "language": "언어코드", // 제공된 경우
+            "resultText": "엔진1 검색 결과...",
+            "retrievedAt": "YYYY-MM-DDTHH:mm:ss.sssZ",
+            "searchUrl": "실제요청된검색URL1"
+          },
+          {
+            "query": "검색어",
+            "searchEngine": "엔진이름2",
+            // ... (오류 발생 시 error 필드 포함)
+            "error": "엔진2 검색 실패 메시지",
+            "retrievedAt": "YYYY-MM-DDTHH:mm:ss.sssZ"
+          }
+        ]
+        ```
+*   **호출 예시 (Stdio):**
+    *   Naver에서 "Node.js" 검색:
+        ```json
+        {
+          "tool": "search",
+          "inputs": {
+            "query": "Node.js",
+            "engineName": "Naver",
+            "languageCode": "ko",
+            "includeHtml": false
+          },
+          "id": "readme-generic-naver"
+        }
+        ```
+    *   한국어를 지원하는 엔진들에서 "날씨" 통합 검색:
+        ```json
+        {
+          "tool": "search",
+          "inputs": {
+            "query": "날씨",
+            "languageCode": "ko",
+            "includeHtml": false
+          },
+          "id": "readme-integrated-ko"
+        }
+        ```
 
-### 10. `googleSearch` (기존 6번)
+### 2. `googleSearch` (Google 특화 검색)
 
-*   **설명:** Google 검색을 수행하고 "인간처럼" 검색 페이지와 상호작용하여 결과를 반환합니다. 검색 결과는 주로 Google 설정 및 검색어의 언어에 따라 반환됩니다. HTML 태그 포함 여부를 선택할 수 있습니다.
+*   **설명:** Google 검색을 "인간처럼" 수행하여 결과를 반환합니다. CAPTCHA 우회를 시도하는 특수 크롤러(`HumanLikeGoogleCrawler`)를 사용합니다. 검색 결과는 주로 Google 설정 및 검색어의 언어에 따라 반환됩니다.
 *   **입력 (`inputs`):**
-    *   `query` (string, 필수): 검색할 단어나 문장입니다. (공백만으로는 안됨)
-    *   `includeHtml` (boolean, 선택, 기본값: `false`): `true`로 설정하면 결과에 HTML 태그를 포함하고, `false`이면 제거된 텍스트만 반환합니다.
+    *   `query` (string, 필수): 검색할 단어나 문장입니다.
+    *   `includeHtml` (boolean, 선택, 기본값: `false`): HTML 태그 포함 여부.
 *   **예상 출력 (MCP 응답의 `result.content[0].text` 내부 JSON 문자열):**
     ```json
     {
@@ -300,7 +120,7 @@ MCP SDK는 `package.json` 파일에 프로젝트 종속성으로 나열되어 �
       "searchEngine": "google"
     }
     ```
-*   **호출 예시 (Stdio - 서버의 표준 입력으로 JSON 전송):**
+*   **호출 예시 (Stdio):**
     ```json
     {
       "tool": "googleSearch",
@@ -312,47 +132,79 @@ MCP SDK는 `package.json` 파일에 프로젝트 종속성으로 나열되어 �
     }
     ```
 
-### 11. `fetchUrl` (기존 7번, `urlFetcherTool`에 해당)
+### 3. `fetchUrl` (URL 콘텐츠 가져오기 및 사용자 정의 URL 검색)
 
-*   **설명:** 제공된 URL의 웹 페이지 콘텐츠를 가져와 주요 텍스트를 추출합니다. 콘텐츠의 언어는 해당 URL의 웹 페이지에 따라 다릅니다.
+*   **설명:** 제공된 URL의 웹 페이지 콘텐츠를 가져옵니다. 선택적으로 검색어(`query`)와 검색어 파라미터명(`queryParamName`)을 제공하여, 해당 URL에 검색어를 추가하여 요청하고 그 결과를 반환할 수 있습니다 (예: 특정 검색 엔진의 URL 템플릿에 검색어 삽입).
 *   **입력 (`inputs`):**
-    *   `url` (string, 필수): 내용을 가져올 웹 페이지의 전체 URL입니다. (유효한 URL 형식이어야 함, 예: `http://example.com`)
+    *   `url` (string, 필수): 내용을 가져올 웹 페이지의 전체 URL 또는 검색을 위한 기본 URL입니다.
+    *   `query` (string, 선택): `url`에 추가할 검색어입니다. 이 값이 제공되면 사용자 정의 URL 검색으로 동작합니다.
+    *   `queryParamName` (string, 선택, 기본값: `q`): `query`를 전달할 URL 파라미터의 이름입니다.
+    *   `includeHtml` (boolean, 선택, 기본값: `false`): 결과에 HTML 태그 포함 여부.
 *   **예상 출력 (MCP 응답의 `result.content[0].text` 내부 JSON 문자열):**
     ```json
     {
-      "url": "가져온 URL",
+      "url": "요청된 최종 URL", // query가 사용된 경우 변경된 URL
       "textContent": "추출된 텍스트 내용...",
-      "retrievedAt": "YYYY-MM-DDTHH:mm:ss.sssZ"
+      "retrievedAt": "YYYY-MM-DDTHH:mm:ss.sssZ",
+      "originalUrl": "사용자가 입력한 초기 URL", // query 사용 시에만 포함될 수 있음
+      "queryUsed": "사용된 검색어", // query 사용 시에만 포함될 수 있음
+      "targetUrl": "실제 요청된 최종 URL" // query 사용 시 변경된 URL과 동일
     }
     ```
+*   **호출 예시 (Stdio):**
+    *   단순 URL 내용 가져오기:
+        ```json
+        {
+          "tool": "fetchUrl",
+          "inputs": {
+            "url": "https://developer.mozilla.org/ko/docs/Web/JavaScript",
+            "includeHtml": false
+          },
+          "id": "readme-fetch-simple"
+        }
+        ```
+    *   사용자 정의 URL로 검색 (DuckDuckGo URL 템플릿 사용):
+        ```json
+        {
+          "tool": "fetchUrl",
+          "inputs": {
+            "url": "https://duckduckgo.com/",
+            "query": "Node.js MCP",
+            "queryParamName": "q",
+            "includeHtml": true
+          },
+          "id": "readme-fetch-custom-search"
+        }
+        ```
 
 ## 📦 프로젝트 구조
 
-mcp-naver-search-server/
-├── logs/              # 로그 파일 (gitignored)
-├── src/               # 소스 코드
-│   ├── config/        # 설정 파일 (serviceConfig.js)
-│   ├── server.js      # 주 서버 초기화 및 MCP 요청 처리 (Stdio 기반)
-│   ├── tools/         # MCP 도구 정의 (naverSearchTool.js, urlFetcherTool.js, index.js)
-│   ├── services/      # 비즈니스 로직 모듈 (searchService.js)
-│   ├── transports/    # 전송 계층 설정 (stdioTransport.js)
-│   └── utils/         # 유틸리티 함수 (logger.cjs, puppeteerHelper.js, htmlParser.js)
-├── tests/             # 테스트 코드 (현재 스킵됨)
-├── .eslintignore      # (삭제됨, eslint.config.mjs의 ignores로 대체 가능)
-├── .eslintrc.json     # (삭제됨, eslint.config.mjs로 대체됨)
+mcp-search-server/
+├── logs/                     # 로그 파일 (gitignored)
+├── src/                      # 소스 코드
+│   ├── config/               # 설정 파일 (serviceConfig.js)
+│   ├── crawlers/             # 크롤러 구현 (humanLikeGoogleCrawler.js 등)
+│   ├── services/             # 비즈니스 로직 (searchService.js)
+│   ├── tools/                # MCP 도구 정의 (genericSearchTool.js, googleSearchTool.js, urlFetcherTool.js, index.js)
+│   ├── transports/           # 전송 계층 설정 (stdioTransport.js)
+│   └── utils/                # 유틸리티 함수 (logger.cjs, htmlParser.js, searchEngineManager.js 등)
+├── tests/                    # 테스트 코드
 ├── .gitignore
-├── .prettierrc.json   # Prettier 설정
+├── .prettierrc.json          # Prettier 설정
 ├── DEVELOPER_MANUAL.ko.md
 ├── INSTALL.md
-├── eslint.config.mjs  # ESLint 설정 (flat config)
-├── jest.config.js     # Jest 설정
-├── nodemon.json       # Nodemon 설정
+├── README.md                 # 현재 파일
+├── eslint.config.mjs         # ESLint 설정 (flat config)
+├── jest.config.js            # Jest 설정
+├── nodemon.json              # Nodemon 설정
 ├── package.json
-└── package-lock.json
+├── package-lock.json
+└── search_engines.json       # 검색 엔진 URL 및 파라미터 설정
+
 
 ## 🌐 크롤러 상세: Google 검색 및 CAPTCHA 우회
 
-이 프로젝트의 Google 검색 기능은 `src/crawlers/humanLikeGoogleCrawler.js`에 구현된 특수 크롤러를 사용합니다. 이 크롤러는 Google의 CAPTCHA 및 봇 탐지 메커니즘을 우회하기 위해 다양한 전략을 사용합니다.
+이 프로젝트의 `googleSearch` 도구는 `src/crawlers/humanLikeGoogleCrawler.js`에 구현된 특수 크롤러를 사용합니다. 이 크롤러는 Google의 CAPTCHA 및 봇 탐지 메커니즘을 우회하기 위해 다양한 전략을 사용합니다.
 
 ### Google 검색 크롤러 (`HumanLikeGoogleCrawler`)
 
