@@ -29,7 +29,40 @@ MCP SDK는 `package.json` 파일에 프로젝트 종속성으로 나열되어 �
 
 ## 🚀 시작하기
 
-서버 설정 및 실행을 시작하려면 **[INSTALL.md](INSTALL.md)**를 참조하십시오.
+### 1. NPX를 이용한 직접 실행 (권장, 설치 불필요)
+
+이 도구는 `npx`를 사용하여 GitHub 저장소에서 직접 실행할 수 있습니다. 별도의 설치 과정이 필요 없습니다.
+
+```bash
+npx github:kim57uak/search-mcp-server
+```
+
+위 명령을 실행하면 자동으로 최신 버전의 도구를 GitHub에서 내려받아 실행합니다. MCP 서버가 시작되고 표준 입출력을 통해 통신할 준비가 됩니다.
+
+### 2. 로컬 개발 및 테스트를 위한 설정
+
+로컬 환경에서 개발하거나 테스트하려면 다음 단계를 따르세요.
+
+1.  **저장소 복제:**
+    ```bash
+    git clone https://github.com/kim57uak/search-mcp-server.git
+    cd search-mcp-server
+    ```
+2.  **종속성 설치:**
+    ```bash
+    npm install
+    ```
+3.  **서버 실행:**
+    ```bash
+    npm start
+    ```
+    또는 개발 모드(nodemon 사용):
+    ```bash
+    npm run dev
+    ```
+
+서버가 시작되면 표준 입력(stdin)을 통해 MCP 요청을 수신하고 표준 출력(stdout)을 통해 응답합니다.
+
 `search_engines.json` 파일을 통해 사용할 검색 엔진을 설정할 수 있습니다.
 
 ## 📄 개발자 문서

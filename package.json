@@ -1,8 +1,11 @@
 {
-  "name": "app",
+  "name": "@kim57uak/search-mcp-server",
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
+  "description": "A CLI tool for integrated search using Puppeteer.",
+  "main": "src/server.js",
+  "bin": {
+    "search-mcp-server": "src/server.js"
+  },
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
