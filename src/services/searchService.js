@@ -4,89 +4,10 @@ import logger from '../utils/logger.cjs';
 import { createCrawler } from '../crawlers/crawlerFactory.js';
 import HumanLikeGoogleCrawler from '../crawlers/humanLikeGoogleCrawler.js';
 import { cleanHtml } from '../utils/htmlParser.js';
-import { SearchEngineManager } from '../../search_manager.py'; // Python 파일을 직접 임포트할 수 없습니다.
+import { SearchEngineManager } from '../utils/searchEngineManager.js'; // 수정된 경로
 
-// Python으로 작성된 SearchEngineManager를 JavaScript 프로젝트에서 직접 사용하기 어렵습니다.
-// 이 부분은 JavaScript로 재작성되거나, Python 프로세스를 별도로 실행하고 IPC를 통해 통신해야 합니다.
-// 여기서는 JavaScript로 SearchEngineManager의 기능을 모방하여 진행합니다.
-// 실제 프로덕션에서는 이 문제를 해결해야 합니다.
-
-// Mock SearchEngineManager ( 원래는 search_manager.py 로부터 와야 함)
-// 이 부분은 search_manager.py의 로직을 JavaScript로 변환한 가상 코드입니다.
-// 실제로는 JSON 파일을 직접 읽고 처리하도록 구현합니다.
-import fs from 'fs';
-import path from 'path';
-import { fileURLToPath } from 'url';
-
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-class MockSearchEngine {
-    constructor(name, baseUrl, queryParam, langParam, supportedLanguages) {
-        this.name = name;
-        this.base_url = baseUrl;
-        this.query_param = queryParam;
-        this.lang_param = langParam;
-        this.supported_languages = supportedLanguages;
-    }
-
-    build_query_url(query, language = null) {
-        const params = new URLSearchParams();
-        params.append(this.query_param, query);
-        if (language && this.lang_param && this.supported_languages.includes(language)) {
-            params.append(this.lang_param, language);
-        }
-        // base_url에 이미 파라미터가 있을 수 있으므로, 이를 고려하여 조합
-        const separator = this.base_url.includes('?') ? '&' : '?';
-        return `${this.base_url}${separator}${params.toString()}`;
-    }
-}
-
-class MockSearchEngineManager {
-    constructor(configPath = "search_engines.json") {
-        // configPath가 절대 경로가 아닐 경우, 이 파일의 위치를 기준으로 경로를 설정합니다.
-        const resolvedConfigPath = path.isAbsolute(configPath) ? configPath : path.resolve(__dirname, '..', '..', configPath);
-        this.configPath = resolvedConfigPath;
-        this.engines = [];
-        this._load_engines();
-    }
-
-    _load_engines() {
-        try {
-            const rawData = fs.readFileSync(this.configPath, 'utf-8');
-            const config_data = JSON.parse(rawData);
-
-            for (const engineData of config_data.engines || []) {
-                const engine = new MockSearchEngine(
-                    engineData.name,
-                    engineData.base_url,
-                    engineData.query_param,
-                    engineData.lang_param,
-                    engineData.supported_languages || []
-                );
-                this.engines.push(engine);
-            }
-        } catch (error) {
-            logger.error(`[MockSearchEngineManager] Error loading or parsing '${this.configPath}': ${error.message}`, { stack: error.stack });
-            // In a real app, you might throw or handle more gracefully
-        }
-    }
-
-    get_all_engines() {
-        return this.engines;
-    }
-
-    get_engines_by_language(language) {
-        return this.engines.filter(engine => engine.supported_languages.includes(language));
-    }
-
-    get_engine_by_name(name) {
-        return this.engines.find(engine => engine.name.toLowerCase() === name.toLowerCase()) || null;
-    }
-}
-
-// search_manager.py 대신 MockSearchEngineManager 사용
-const searchEngineManager = new MockSearchEngineManager();
+// SearchEngineManager 인스턴스 생성
+const searchEngineManager = new SearchEngineManager(); // 프로젝트 루트의 search_engines.json을 기본으로 사용
 
 
 /**
@@ -109,14 +30,8 @@ export const executeGenericSearch = async (query, engineName, languageCode = nul
     throw new Error(`Search engine "${engineName}" not found.`);
   }
 
-  // Referer는 serviceConfig에서 가져오거나, search_engines.json에 추가하는 것을 고려.
-  // 여기서는 serviceConfig에 해당 엔진의 referer 설정이 있다고 가정.
-  // 예: const referer = serviceConfig[engineName.toLowerCase() + "Search"]?.referer;
-  // 간단하게 하기 위해 여기서는 Referer를 하드코딩하거나, 설정 파일에 더 많은 정보가 필요함을 명시.
-  // 실제로는 serviceConfig.js에서 가져오도록 수정 필요
   const engineConfig = serviceConfig[`${engineName.toLowerCase()}Search`] || {};
   const referer = engineConfig.referer || `${new URL(engine.base_url).protocol}//${new URL(engine.base_url).hostname}/`;
-
 
   const searchUrl = engine.build_query_url(query, languageCode);
   logger.info(`[SearchService] Constructed search URL: ${searchUrl}`);
@@ -138,7 +53,7 @@ export const executeGenericSearch = async (query, engineName, languageCode = nul
       language: languageCode,
       resultText,
       retrievedAt,
-      searchUrl // 반환값에 searchUrl 추가
+      searchUrl
     };
   } catch (error) {
     logger.error(
@@ -177,10 +92,7 @@ export const performIntegratedSearch = async (query, languageCode = null, includ
     enginesToSearch = searchEngineManager.get_all_engines();
   }
 
-  // Google (human-like)은 별도로 처리하거나, 여기서 제외하고 전용 tool을 사용하도록 유도
-  // 여기서는 generic search 로직에 포함되지 않는다고 가정하고 필터링
   enginesToSearch = enginesToSearch.filter(engine => engine.name.toLowerCase() !== 'google');
-
 
   if (enginesToSearch.length === 0) {
     logger.warn('[SearchService] No engines available for integrated search after filtering.');
@@ -188,11 +100,10 @@ export const performIntegratedSearch = async (query, languageCode = null, includ
   }
 
   const results = [];
-  // 검색을 병렬로 수행
   const searchPromises = enginesToSearch.map(engine =>
     executeGenericSearch(query, engine.name, languageCode, includeHtml)
-      .then(result => ({ ...result, searchEngine: engine.name })) // 성공한 결과
-      .catch(error => ({ // 실패한 결과도 포함하여 어떤 엔진에서 오류가 났는지 알 수 있도록 함
+      .then(result => ({ ...result, searchEngine: engine.name }))
+      .catch(error => ({
         query,
         searchEngine: engine.name,
         language: languageCode,
@@ -207,17 +118,15 @@ export const performIntegratedSearch = async (query, languageCode = null, includ
     if (settledResult.status === 'fulfilled') {
       results.push(settledResult.value);
     } else {
-      // executeGenericSearch 내에서 이미 에러를 잡아 객체로 반환하므로, 이 경우는 거의 없음.
-      // 만약 executeGenericSearch가 에러를 throw하게 변경된다면 이 부분이 필요.
-      logger.error(`[SearchService] A promise was rejected in integrated search: ${settledResult.reason}`);
-      // results.push({ error: 'Failed to fetch from one engine', details: settledResult.reason });
+      // This case should ideally be caught by the .catch in the map above
+      logger.error(`[SearchService] A promise was unexpectedly rejected in integrated search: ${settledResult.reason?.message || settledResult.reason}`, { stack: settledResult.reason?.stack });
+      // results.push({ query, error: `Search failed for an engine: ${settledResult.reason?.message}`, retrievedAt: new Date().toISOString() });
     }
   });
 
-  logger.info(`[SearchService] Integrated search completed for query: "${query}". Found ${results.length} results/errors.`);
+  logger.info(`[SearchService] Integrated search completed for query: "${query}". Processed ${enginesToSearch.length} engines.`);
   return results;
 };
-
 
 /**
  * Google 검색을 수행합니다. (인간과 유사한 행동 시뮬레이션) - 유지되는 함수
@@ -237,26 +146,22 @@ export const googleSearch = async (query, includeHtml = false) => {
   }
 
   const {
-    baseUrl, // Google 검색 페이지 URL (e.g., https://www.google.com)
+    baseUrl,
     referer,
-    // searchInputSelector, // HumanLikeGoogleCrawler 내부에서 사용
-    // searchButtonSelector, // HumanLikeGoogleCrawler 내부에서 사용
   } = googleEngineConfig;
 
   let crawlerInstance = null;
   try {
     const crawlerConfig = {
         ...(serviceConfig.crawler.puppeteer),
-        // HumanLikeGoogleCrawler에 필요한 추가 설정 (예: selectors)은 serviceConfig.googleSearch에서 가져와 전달
         searchInputSelector: googleEngineConfig.searchInputSelector,
         searchButtonSelector: googleEngineConfig.searchButtonSelector,
-        baseUrl: baseUrl, // baseUrl도 전달하여 HumanLikeGoogleCrawler가 사용하도록 함
+        baseUrl: baseUrl,
     };
-    crawlerInstance = new HumanLikeGoogleCrawler(crawlerConfig); // 설정 객체 전달
+    crawlerInstance = new HumanLikeGoogleCrawler(crawlerConfig);
     logger.info(`[SearchService] Using HumanLikeGoogleCrawler for Google search.`);
 
     const pageOptions = { referer };
-
     const rawHtml = await crawlerInstance.searchAndGetResults(query, pageOptions);
 
     logger.info('[SearchService] Raw HTML received for Google search');
@@ -306,13 +211,10 @@ export const fetchUrlContent = async (url, includeHtml = false) => {
     crawlerInstance = await createCrawler(serviceConfig.crawler);
     logger.info(`[SearchService] Using ${crawlerInstance.constructor.name} for URL fetch.`);
 
-    // fetchUrlContent는 특정 pageOptions이 크게 필요 없을 수 있으나, 필요시 여기에 추가
-    // const pageOptions = { userAgent: 'MyCustomAgent/1.0' };
-    // const rawHtml = await crawlerInstance.getRawHtml(url, pageOptions);
-    const rawHtml = await crawlerInstance.getRawHtml(url); // 기본 옵션으로 호출
+    const rawHtml = await crawlerInstance.getRawHtml(url);
 
     logger.info('[SearchService] Raw HTML received from URL');
-    const textContent = cleanHtml(rawHtml, includeHtml); // includeHtml 파라미터 사용
+    const textContent = cleanHtml(rawHtml, includeHtml);
     const retrievedAt = new Date().toISOString();
 
     logger.info(
