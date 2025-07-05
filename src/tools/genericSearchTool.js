@@ -1,6 +1,6 @@
 // src/tools/genericSearchTool.js
 import { z } from 'zod';
-import { executeGenericSearch, performIntegratedSearch } } from '../services/searchService.js';
+import { executeGenericSearch, performIntegratedSearch } from '../services/searchService.js';
 import logger from '../utils/logger.cjs';
 
 export const genericSearchTool = {
