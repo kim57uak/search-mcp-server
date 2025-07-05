@@ -5,7 +5,8 @@ import logger from '../utils/logger.cjs';
 
 export const urlFetcherTool = {
   name: 'fetchUrl',
-  description: '지정된 URL의 웹 페이지 콘텐츠를 가져와 텍스트 형태로 반환합니다.',
+  description:
+    '제공된 URL의 웹 페이지 콘텐츠를 가져와 주요 텍스트를 추출합니다. 콘텐츠의 언어는 해당 URL의 웹 페이지에 따라 다릅니다.',
   inputSchema: {
     url: z.string().url({ message: '유효한 URL을 입력해야 합니다.' }),
   },

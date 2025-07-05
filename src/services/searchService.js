@@ -79,6 +79,226 @@ export const naverSearch = async (query, includeHtml = false) => {
 };
 
 /**
+ * Baidu 검색을 수행합니다.
+ * @param {string} query - 검색어 (중국어로 번역 필요)
+ * @param {boolean} includeHtml - 결과에 HTML 태그를 포함할지 여부
+ * @returns {Promise<object>} 검색 결과 객체 { query, resultText, retrievedAt, searchEngine: 'baidu' }
+ * @throws {Error} 검색 중 오류 발생 시
+ */
+export const baiduSearch = async (query, includeHtml = false) => {
+  // TODO: Implement translation to Chinese for the query
+  const translatedQuery = `${query} (언어: 중국어)`; // Placeholder
+  logger.info(
+    `[SearchService] Initiating Baidu search for query: "${translatedQuery}" (original: "${query}"), includeHtml: ${includeHtml}`,
+  );
+
+  const { baseUrl, referer } = serviceConfig.baiduSearch;
+  const searchUrl = `${baseUrl}${encodeURIComponent(translatedQuery)}`;
+
+  let crawlerInstance = null;
+  try {
+    crawlerInstance = await createCrawler(serviceConfig.crawler);
+    logger.info(`[SearchService] Using ${crawlerInstance.constructor.name} for Baidu search.`);
+
+    const pageOptions = { referer };
+    logger.info(`[SearchService] Requesting URL via ${crawlerInstance.constructor.name}: ${searchUrl}`);
+    const rawHtml = await crawlerInstance.getRawHtml(searchUrl, pageOptions);
+
+    logger.info('[SearchService] Raw HTML received for Baidu search');
+    const resultText = cleanHtml(rawHtml, includeHtml);
+    const retrievedAt = new Date().toISOString();
+
+    logger.info(
+      `[SearchService] Successfully retrieved and processed Baidu search results for query: "${translatedQuery}"`,
+    );
+
+    return {
+      query: translatedQuery, // Log the translated query
+      originalQuery: query,
+      resultText,
+      retrievedAt,
+      searchEngine: 'baidu',
+    };
+  } catch (error) {
+    logger.error(
+      `[SearchService] Error during Baidu search for query "${translatedQuery}": ${error.message}`,
+      { stack: error.stack },
+    );
+    throw error;
+  } finally {
+    if (crawlerInstance) {
+      await crawlerInstance.close();
+      logger.info(`[SearchService] ${crawlerInstance.constructor.name} instance closed after Baidu search.`);
+    }
+  }
+};
+
+/**
+ * Yahoo Japan 검색을 수행합니다.
+ * @param {string} query - 검색어 (일본어 또는 영어로 번역 필요)
+ * @param {boolean} includeHtml - 결과에 HTML 태그를 포함할지 여부
+ * @returns {Promise<object>} 검색 결과 객체 { query, resultText, retrievedAt, searchEngine: 'yahoo_japan' }
+ * @throws {Error} 검색 중 오류 발생 시
+ */
+export const yahooJapanSearch = async (query, includeHtml = false) => {
+  // TODO: Implement translation to Japanese or English for the query
+  const translatedQuery = `${query} (언어: 일본어/영어)`; // Placeholder
+  logger.info(
+    `[SearchService] Initiating Yahoo Japan search for query: "${translatedQuery}" (original: "${query}"), includeHtml: ${includeHtml}`,
+  );
+
+  const { baseUrl, referer } = serviceConfig.yahooJapanSearch;
+  const searchUrl = `${baseUrl}${encodeURIComponent(translatedQuery)}`;
+
+  let crawlerInstance = null;
+  try {
+    crawlerInstance = await createCrawler(serviceConfig.crawler);
+    logger.info(`[SearchService] Using ${crawlerInstance.constructor.name} for Yahoo Japan search.`);
+
+    const pageOptions = { referer };
+    logger.info(`[SearchService] Requesting URL via ${crawlerInstance.constructor.name}: ${searchUrl}`);
+    const rawHtml = await crawlerInstance.getRawHtml(searchUrl, pageOptions);
+
+    logger.info('[SearchService] Raw HTML received for Yahoo Japan search');
+    const resultText = cleanHtml(rawHtml, includeHtml);
+    const retrievedAt = new Date().toISOString();
+
+    logger.info(
+      `[SearchService] Successfully retrieved and processed Yahoo Japan search results for query: "${translatedQuery}"`,
+    );
+
+    return {
+      query: translatedQuery,
+      originalQuery: query,
+      resultText,
+      retrievedAt,
+      searchEngine: 'yahoo_japan',
+    };
+  } catch (error) {
+    logger.error(
+      `[SearchService] Error during Yahoo Japan search for query "${translatedQuery}": ${error.message}`,
+      { stack: error.stack },
+    );
+    throw error;
+  } finally {
+    if (crawlerInstance) {
+      await crawlerInstance.close();
+      logger.info(`[SearchService] ${crawlerInstance.constructor.name} instance closed after Yahoo Japan search.`);
+    }
+  }
+};
+
+/**
+ * Yahoo 검색을 수행합니다.
+ * @param {string} query - 검색어 (영어로 번역 필요)
+ * @param {boolean} includeHtml - 결과에 HTML 태그를 포함할지 여부
+ * @returns {Promise<object>} 검색 결과 객체 { query, resultText, retrievedAt, searchEngine: 'yahoo' }
+ * @throws {Error} 검색 중 오류 발생 시
+ */
+export const yahooSearch = async (query, includeHtml = false) => {
+  // TODO: Implement translation to English for the query
+  const translatedQuery = `${query} (언어: 영어)`; // Placeholder
+  logger.info(
+    `[SearchService] Initiating Yahoo search for query: "${translatedQuery}" (original: "${query}"), includeHtml: ${includeHtml}`,
+  );
+
+  const { baseUrl, referer } = serviceConfig.yahooSearch;
+  const searchUrl = `${baseUrl}${encodeURIComponent(translatedQuery)}`;
+
+  let crawlerInstance = null;
+  try {
+    crawlerInstance = await createCrawler(serviceConfig.crawler);
+    logger.info(`[SearchService] Using ${crawlerInstance.constructor.name} for Yahoo search.`);
+
+    const pageOptions = { referer };
+    logger.info(`[SearchService] Requesting URL via ${crawlerInstance.constructor.name}: ${searchUrl}`);
+    const rawHtml = await crawlerInstance.getRawHtml(searchUrl, pageOptions);
+
+    logger.info('[SearchService] Raw HTML received for Yahoo search');
+    const resultText = cleanHtml(rawHtml, includeHtml);
+    const retrievedAt = new Date().toISOString();
+
+    logger.info(
+      `[SearchService] Successfully retrieved and processed Yahoo search results for query: "${translatedQuery}"`,
+    );
+
+    return {
+      query: translatedQuery,
+      originalQuery: query,
+      resultText,
+      retrievedAt,
+      searchEngine: 'yahoo',
+    };
+  } catch (error) {
+    logger.error(
+      `[SearchService] Error during Yahoo search for query "${translatedQuery}": ${error.message}`,
+      { stack: error.stack },
+    );
+    throw error;
+  } finally {
+    if (crawlerInstance) {
+      await crawlerInstance.close();
+      logger.info(`[SearchService] ${crawlerInstance.constructor.name} instance closed after Yahoo search.`);
+    }
+  }
+};
+
+/**
+ * Yandex 검색을 수행합니다.
+ * @param {string} query - 검색어 (러시아어로 번역 필요)
+ * @param {boolean} includeHtml - 결과에 HTML 태그를 포함할지 여부
+ * @returns {Promise<object>} 검색 결과 객체 { query, resultText, retrievedAt, searchEngine: 'yandex' }
+ * @throws {Error} 검색 중 오류 발생 시
+ */
+export const yandexSearch = async (query, includeHtml = false) => {
+  // TODO: Implement translation to Russian for the query
+  const translatedQuery = `${query} (언어: 러시아어)`; // Placeholder
+  logger.info(
+    `[SearchService] Initiating Yandex search for query: "${translatedQuery}" (original: "${query}"), includeHtml: ${includeHtml}`,
+  );
+
+  const { baseUrl, referer } = serviceConfig.yandexSearch;
+  const searchUrl = `${baseUrl}${encodeURIComponent(translatedQuery)}`;
+
+  let crawlerInstance = null;
+  try {
+    crawlerInstance = await createCrawler(serviceConfig.crawler);
+    logger.info(`[SearchService] Using ${crawlerInstance.constructor.name} for Yandex search.`);
+
+    const pageOptions = { referer };
+    logger.info(`[SearchService] Requesting URL via ${crawlerInstance.constructor.name}: ${searchUrl}`);
+    const rawHtml = await crawlerInstance.getRawHtml(searchUrl, pageOptions);
+
+    logger.info('[SearchService] Raw HTML received for Yandex search');
+    const resultText = cleanHtml(rawHtml, includeHtml);
+    const retrievedAt = new Date().toISOString();
+
+    logger.info(
+      `[SearchService] Successfully retrieved and processed Yandex search results for query: "${translatedQuery}"`,
+    );
+
+    return {
+      query: translatedQuery,
+      originalQuery: query,
+      resultText,
+      retrievedAt,
+      searchEngine: 'yandex',
+    };
+  } catch (error) {
+    logger.error(
+      `[SearchService] Error during Yandex search for query "${translatedQuery}": ${error.message}`,
+      { stack: error.stack },
+    );
+    throw error;
+  } finally {
+    if (crawlerInstance) {
+      await crawlerInstance.close();
+      logger.info(`[SearchService] ${crawlerInstance.constructor.name} instance closed after Yandex search.`);
+    }
+  }
+};
+
+/**
  * Google 검색을 수행합니다. (인간과 유사한 행동 시뮬레이션)
  * @param {string} query - 검색어
  * @param {boolean} includeHtml - 결과에 HTML 태그를 포함할지 여부
