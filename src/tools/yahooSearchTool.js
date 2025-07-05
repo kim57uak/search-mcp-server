@@ -6,7 +6,7 @@ import { yahooSearch } from '../services/searchService.js';
 export const yahooSearchTool = {
   name: 'yahooSearch',
   description:
-    'Yahoo.com (영어권) 검색을 수행하고 결과를 반환합니다. 영어 번역된 검색어 사용이 권장됩니다.',
+    'Yahoo.com (글로벌/영어권) 검색엔진을 사용하여 검색을 수행하고 그 결과를 반환합니다. 입력 검색어는 영어로 번역되어야 하며 (현재 placeholder로 처리), 검색 결과는 주로 영어로 제공됩니다.',
   inputSchema: {
     query: z.string().min(1, { message: '검색어(query)는 필수입니다.' }),
     includeHtml: z.boolean().optional().default(false),

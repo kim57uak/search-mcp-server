@@ -167,7 +167,12 @@ mcp-search-server/
 
 각 도구는 유사한 구조를 가집니다:
 *   🎯 **목적**: 해당 검색 엔진에서 웹 검색을 수행하고, HTML 태그 포함 여부(`includeHtml`)에 따라 처리된 결과를 반환합니다. (내부적으로 `searchService`의 해당 검색 함수 호출)
-*   📜 **설명**: 각 검색 엔진의 특성을 반영한 설명 (예: `Baidu 검색을 수행하고 결과를 반환합니다. 중국어 번역된 검색어 사용이 권장됩니다.`)
+*   📜 **설명**:
+    *   **googleSearch**: `Google 검색을 수행하고 "인간처럼" 검색 페이지와 상호작용하여 결과를 반환합니다. 검색 결과는 주로 Google 설정 및 검색어의 언어에 따라 반환됩니다.`
+    *   **baiduSearch**: `중국 Baidu 검색엔진을 사용하여 검색을 수행하고 그 결과를 반환합니다. 입력 검색어는 중국어로 번역되어야 하며 (현재 placeholder로 처리), 검색 결과는 주로 중국어로 제공됩니다.`
+    *   **yahooJapanSearch**: `Yahoo! JAPAN 검색엔진을 사용하여 검색을 수행하고 그 결과를 반환합니다. 입력 검색어는 일본어 또는 영어로 번역되어야 하며 (현재 placeholder로 처리), 검색 결과는 주로 일본어로 제공됩니다.`
+    *   **yahooSearch**: `Yahoo.com (글로벌/영어권) 검색엔진을 사용하여 검색을 수행하고 그 결과를 반환합니다. 입력 검색어는 영어로 번역되어야 하며 (현재 placeholder로 처리), 검색 결과는 주로 영어로 제공됩니다.`
+    *   **yandexSearch**: `러시아 Yandex 검색엔진을 사용하여 검색을 수행하고 그 결과를 반환합니다. 입력 검색어는 러시아어로 번역되어야 하며 (현재 placeholder로 처리), 검색 결과는 주로 러시아어로 제공됩니다.`
 *   📥 **입력 스키마 (`zod`):**
     ```javascript
     z.object({
@@ -269,7 +274,8 @@ mcp-search-server/
 
 ### 3.5. 🛠️ `integratedSearch` 도구 (`src/tools/integratedSearchTool.js`)
 
-*   🎯 **목적**: 사용자가 제공한 검색어(`query`)로 Naver, Daum, Bing, Nate 웹 검색을 동시에 수행하고, HTML 태그 포함 여부(`includeHtml`)에 따라 처리된 통합 결과를 반환합니다. (내부적으로 `integratedSearchService.integratedSearch` 호출)
+*   🎯 **목적**: 사용자가 제공한 검색어(`query`)로 활성화된 여러 검색 엔진(예: Google, Baidu 등)에서 동시에 검색을 수행하고 통합된 결과를 반환합니다. 각 검색 결과의 언어는 해당 검색 엔진의 특성을 따릅니다. HTML 태그 포함 여부를 선택할 수 있습니다. (내부적으로 `integratedSearchService.integratedSearch` 호출)
+*   📜 **설명**: `활성화된 여러 검색 엔진(예: Google, Baidu 등)에서 동시에 검색을 수행하고 통합된 결과를 반환합니다. 각 검색 결과의 언어는 해당 검색 엔진의 특성을 따릅니다. HTML 태그 포함 여부를 선택할 수 있습니다.`
 *   📥 **입력 스키마 (`zod`):**
     ```javascript
     z.object({
@@ -301,7 +307,7 @@ mcp-search-server/
 ### 3.6. 🛠️ `fetchUrl` 도구 (`src/tools/urlFetcherTool.js`)
 
 *   🎯 **목적**: 사용자가 제공한 URL의 웹 페이지 콘텐츠를 가져와 주요 텍스트 내용을 추출하여 반환합니다.
-*   📜 **설명**: `특정 url 접근을 통한 웹 컨텐츠 검색`
+*   📜 **설명**: `제공된 URL의 웹 페이지 콘텐츠를 가져와 주요 텍스트를 추출합니다. 콘텐츠의 언어는 해당 URL의 웹 페이지에 따라 다릅니다.`
 *   📥 **입력 스키마 (`zod`):**
     ```javascript
     z.object({

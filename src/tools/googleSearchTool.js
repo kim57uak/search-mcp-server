@@ -6,7 +6,7 @@ import { googleSearch } from '../services/searchService.js'; // searchService에
 export const googleSearchTool = {
   name: 'googleSearch',
   description:
-    'Google 검색을 수행하고 결과를 반환합니다. "인간처럼" 검색 페이지와 상호작용하여 결과를 가져옵니다.',
+    'Google 검색을 수행하고 "인간처럼" 검색 페이지와 상호작용하여 결과를 반환합니다. 검색 결과는 주로 Google 설정 및 검색어의 언어에 따라 반환됩니다.',
   inputSchema: {
     query: z.string().min(1, { message: '검색어(query)는 필수입니다.' }),
     includeHtml: z.boolean().optional().default(false),
