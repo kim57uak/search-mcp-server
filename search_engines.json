@@ -67,12 +67,6 @@
       "base_url": "https://www.youtube.com/results?",
       "query_param": "search_query",
       "supported_languages": ["ko","en","es","ja","zh-CN","ru"]
-    },
-    {
-      "name": "Newsmax",
-      "base_url": "https://www.newsmax.com/search/?",
-      "query_param": "query",
-      "supported_languages": ["en","es"]
     }
   ]
 }
