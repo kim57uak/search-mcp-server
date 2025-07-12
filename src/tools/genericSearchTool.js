@@ -12,7 +12,7 @@ export const genericSearchTool = {
   inputSchema: {
     query: z.string().min(1, { message: '검색어(query)는 필수입니다.' }),
     engineName: z.string().optional(), // 예: "Naver", "Bing" 등. 지정하지 않으면 통합 검색 시도.
-    languageCode: z.string().optional(), // 예: "ko", "en". engineName과 함께 사용되거나, 통합 검색 시 필터로 사용.
+    languageCode: z.string().optional().default("ko"), // 예: "ko", "en". engineName과 함께 사용되거나, 통합 검색 시 필터로 사용.
     includeHtml: z.boolean().optional().default(false),
   },
   async handler({ query, engineName, languageCode, includeHtml }) {

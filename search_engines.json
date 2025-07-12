@@ -18,13 +18,13 @@
       "base_url": "https://www.bing.com/search",
       "query_param": "q",
       "lang_param": "setlang",
-      "supported_languages": ["en", "ko", "ja", "zh-CN", "ru", "es", "fr"]
+      "supported_languages": ["en", "ja", "zh-CN", "ru", "es", "fr"]
     },
     {
       "name": "DuckDuckGo",
       "base_url": "https://duckduckgo.com/",
       "query_param": "q",
-      "supported_languages": ["en", "ko", "ja", "zh-CN", "ru", "es","fr"]
+      "supported_languages": ["en", "zh-CN", "ru", "es", "fr"]
     },
     {
       "name": "Baidu",
@@ -42,7 +42,7 @@
       "name": "Yahoo",
       "base_url": "https://search.yahoo.com/search",
       "query_param": "p",
-      "supported_languages": ["en", "es","fr","kr"]
+      "supported_languages": ["en", "es", "fr", "kr"]
     },
     {
       "name": "Yandex",
@@ -66,7 +66,7 @@
       "name": "YouTube",
       "base_url": "https://www.youtube.com/results?",
       "query_param": "search_query",
-      "supported_languages": ["ko","en","es","ja","zh-CN","ru"]
+      "supported_languages": ["ko", "en", "es", "ja", "zh-CN", "ru"]
     }
   ]
 }
