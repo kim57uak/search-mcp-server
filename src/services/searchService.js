@@ -3,6 +3,7 @@ import { serviceConfig } from '../config/serviceConfig.js';
 import logger from '../utils/logger.cjs';
 import { createCrawler } from '../crawlers/crawlerFactory.js';
 import HumanLikeGoogleCrawler from '../crawlers/humanLikeGoogleCrawler.js';
+import AxiosGoogleCrawler from '../crawlers/axiosGoogleCrawler.js';
 import { cleanHtml } from '../utils/htmlParser.js';
 import { SearchEngineManager } from '../utils/searchEngineManager.js'; // 수정된 경로
 
@@ -129,47 +130,38 @@ export const performIntegratedSearch = async (query, languageCode = null, includ
 };
 
 /**
- * Google 검색을 수행합니다. (인간과 유사한 행동 시뮬레이션) - 유지되는 함수
+ * Google 검색을 수행합니다. (AxiosGoogleCrawler 우선, HumanLikeGoogleCrawler 폴백)
  * @param {string} query - 검색어
  * @param {boolean} [includeHtml=false] - 결과에 HTML 태그를 포함할지 여부
  * @returns {Promise<object>} 검색 결과 객체 { query, resultText, retrievedAt, searchEngine: 'google' }
  */
-export const googleSearch = async (query, includeHtml = false) => {
+
+/**
+ * HumanLikeGoogleCrawler를 직접 사용하여 Google 검색을 수행합니다.
+ * @param {string} query - 검색어
+ * @param {boolean} [includeHtml=false] - 결과에 HTML 태그를 포함할지 여부
+ * @returns {Promise<object>} 검색 결과 객체 { query, resultText, retrievedAt, searchEngine: 'google' }
+ */
+export const humanLikeGoogleSearch = async (query, includeHtml = false) => {
   logger.info(
-    `[SearchService] Initiating Google search (human-like) for query: "${query}", includeHtml: ${includeHtml}`,
+    `[SearchService] Initiating HumanLikeGoogleCrawler search for query: "${query}", includeHtml: ${includeHtml}`,
   );
-
-  const googleEngineConfig = serviceConfig.googleSearch;
-  if (!googleEngineConfig) {
-    logger.error("[SearchService] Google search configuration is missing in serviceConfig.");
-    throw new Error("Google search configuration is missing.");
-  }
-
-  const {
-    baseUrl,
-    referer,
-  } = googleEngineConfig;
 
   let crawlerInstance = null;
   try {
-    const crawlerConfig = {
-        ...(serviceConfig.crawler.puppeteer),
-        searchInputSelector: googleEngineConfig.searchInputSelector,
-        searchButtonSelector: googleEngineConfig.searchButtonSelector,
-        baseUrl: baseUrl,
-    };
-    crawlerInstance = new HumanLikeGoogleCrawler(crawlerConfig);
+    crawlerInstance = new HumanLikeGoogleCrawler({
+      timeout: 15000,
+      maxRetries: 3,
+      retryDelay: 1000
+    });
     logger.info(`[SearchService] Using HumanLikeGoogleCrawler for Google search.`);
 
-    const pageOptions = { referer };
-    const rawHtml = await crawlerInstance.searchAndGetResults(query, pageOptions);
-
-    logger.info('[SearchService] Raw HTML received for Google search');
+    const rawHtml = await crawlerInstance.searchAndGetResults(query);
     const resultText = cleanHtml(rawHtml, includeHtml);
     const retrievedAt = new Date().toISOString();
 
     logger.info(
-      `[SearchService] Successfully retrieved and processed Google search results for query: "${query}"`,
+      `[SearchService] Successfully retrieved HumanLikeGoogleCrawler search results for query: "${query}"`,
     );
 
     return {
@@ -180,10 +172,89 @@ export const googleSearch = async (query, includeHtml = false) => {
     };
   } catch (error) {
     logger.error(
-      `[SearchService] Error during Google search for query "${query}": ${error.message}`,
+      `[SearchService] Error during HumanLikeGoogleCrawler search for query "${query}": ${error.message}`,
       { stack: error.stack },
     );
     throw error;
+  } finally {
+    if (crawlerInstance) {
+      await crawlerInstance.close();
+      logger.info(`[SearchService] ${crawlerInstance.constructor.name} instance closed after Google search.`);
+    }
+  }
+};
+export const googleSearch = async (query, includeHtml = false) => {
+  logger.info(
+    `[SearchService] Initiating Google search (axios-based) for query: "${query}", includeHtml: ${includeHtml}`,
+  );
+
+  let crawlerInstance = null;
+  try {
+    // Try axios-based crawler first (Python approach)
+    crawlerInstance = new AxiosGoogleCrawler({
+      timeout: 15000,
+      maxRetries: 3,
+      retryDelay: 1000
+    });
+    logger.info(`[SearchService] Using AxiosGoogleCrawler for Google search.`);
+
+    const result = await crawlerInstance.searchGoogle(query, includeHtml);
+    
+    logger.info(
+      `[SearchService] Successfully retrieved Google search results for query: "${query}"`,
+    );
+
+    return result;
+  } catch (axiosError) {
+    logger.warn(
+      `[SearchService] AxiosGoogleCrawler failed for query "${query}": ${axiosError.message}. Falling back to Puppeteer.`,
+    );
+    
+    // Fallback to Puppeteer-based crawler
+    try {
+      const googleEngineConfig = serviceConfig.googleSearch;
+      if (!googleEngineConfig) {
+        throw new Error("Google search configuration is missing.");
+      }
+
+      const {
+        baseUrl,
+        referer,
+      } = googleEngineConfig;
+
+      const crawlerConfig = {
+          ...(serviceConfig.crawler.puppeteer),
+          searchInputSelector: googleEngineConfig.searchInputSelector,
+          searchButtonSelector: googleEngineConfig.searchButtonSelector,
+          baseUrl: baseUrl,
+      };
+      
+      if (crawlerInstance) {
+        await crawlerInstance.close();
+      }
+      
+      crawlerInstance = new HumanLikeGoogleCrawler(crawlerConfig);
+      logger.info(`[SearchService] Fallback to HumanLikeGoogleCrawler for Google search.`);
+
+      const pageOptions = { referer };
+      const rawHtml = await crawlerInstance.searchAndGetResults(query, pageOptions);
+
+      logger.info('[SearchService] Raw HTML received from Puppeteer fallback');
+      const resultText = cleanHtml(rawHtml, includeHtml);
+      const retrievedAt = new Date().toISOString();
+
+      return {
+        query,
+        resultText,
+        retrievedAt,
+        searchEngine: 'google',
+      };
+    } catch (puppeteerError) {
+      logger.error(
+        `[SearchService] Both crawlers failed for Google search "${query}": Axios: ${axiosError.message}, Puppeteer: ${puppeteerError.message}`,
+      );
+      throw new Error(`Google search failed: ${puppeteerError.message}`);
+    }
   } finally {
     if (crawlerInstance) {
       await crawlerInstance.close();

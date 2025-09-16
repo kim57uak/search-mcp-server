@@ -1,10 +1,11 @@
 // src/tools/index.js
-//import { googleSearchTool } from './googleSearchTool.js';
+import { googleSearchTool } from './googleSearchTool.js';
 import { urlFetcherTool } from './urlFetcherTool.js';
-import { genericSearchTool } from './genericSearchTool.js'; // 새로운 일반 검색 도구
+import { genericSearchTool } from './genericSearchTool.js';
 
 export const tools = [
- // googleSearchTool,   // 유지
-  urlFetcherTool,     // 유지
-  genericSearchTool,  // 새로 추가
+  googleSearchTool,
+  //humanLikeGoogleSearchTool,
+  urlFetcherTool,
+  genericSearchTool,
 ];
