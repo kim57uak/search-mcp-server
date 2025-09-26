@@ -51,22 +51,10 @@
       "supported_languages": ["ru"]
     },
     {
-      "name": "Daum",
-      "base_url": "https://search.daum.net/search?w=tot&DA=YZR&t__nil_searchbox=btn&sug=&sugo=&sq=&o=",
-      "query_param": "q",
-      "supported_languages": ["ko"]
-    },
-    {
-      "name": "Nate",
-      "base_url": "https://search.daum.net/nate?w=tot&DA=SBC&",
-      "query_param": "q",
-      "supported_languages": ["ko"]
-    },
-    {
       "name": "YouTube",
       "base_url": "https://www.youtube.com/results?",
       "query_param": "search_query",
-      "supported_languages": ["ko", "en", "es", "ja", "zh-CN", "ru"]
+      "supported_languages": ["en", "es", "ja", "zh-CN", "ru"]
     }
   ]
 }
