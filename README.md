@@ -11,6 +11,9 @@
     *   언어 코드를 지정하여 해당 언어를 지원하는 엔진을 대상으로 검색할 수 있습니다.
 *   **특수 Google 검색 도구 (`googleSearch`):**
     *   CAPTCHA 우회를 시도하는 `HumanLikeGoogleCrawler`를 사용하여 Google 검색을 수행합니다.
+*   **Perplexity AI 검색 도구 (`perplexitySearch`):**
+    *   Perplexity AI의 검색 API를 사용하여 실시간 웹 검색 결과를 제공합니다.
+    *   지역별 검색 결과 필터링 및 최대 3개 결과 반환 (maxResult: 3, maxTokenPerPage: 1024).
 *   **URL 콘텐츠 가져오기 및 사용자 정의 URL 검색 (`fetchUrl`):**
     *   지정된 URL의 웹 페이지 콘텐츠를 가져옵니다.
     *   URL과 함께 검색어 및 검색 파라미터 이름을 제공하여, 해당 URL 기반으로 사용자 정의 검색을 실행할 수 있습니다.
@@ -64,6 +67,30 @@ npx github:kim57uak/search-mcp-server
 서버가 시작되면 표준 입력(stdin)을 통해 MCP 요청을 수신하고 표준 출력(stdout)을 통해 응답합니다.
 
 `search_engines.json` 파일을 통해 사용할 검색 엔진을 설정할 수 있습니다.
+
+### 환경 변수 설정
+
+Perplexity AI 검색 기능을 사용하려면 API 키가 필요합니다:
+
+1. **환경 변수로 설정:**
+   ```bash
+   export PERPLEXITY_API_KEY="your_api_key_here"
+   ```
+
+2. **`.env` 파일 생성:**
+   ```bash
+   cp .env.example .env
+   # .env 파일을 편집하여 실제 API 키 입력
+   ```
+   
+   `.env` 파일 내용:
+   ```
+   PERPLEXITY_API_KEY=your_api_key_here
+   ```
+
+**중요:** 타 플랫폼(Claude Desktop, VS Code 등)에서 MCP 서버를 사용할 때는 해당 플랫폼의 환경 변수 설정 방법을 따라야 합니다. 예를 들어:
+- **Claude Desktop:** `claude_desktop_config.json`에서 `env` 섹션에 환경 변수 설정
+- **VS Code:** 워크스페이스 설정 또는 시스템 환경 변수 사용
 
 ## 📄 개발자 문서
 
@@ -165,7 +192,46 @@ npx github:kim57uak/search-mcp-server
     }
     ```
 
-### 3. `fetchUrl` (URL 콘텐츠 가져오기 및 사용자 정의 URL 검색)
+### 3. `perplexitySearch` (Perplexity AI 검색)
+
+*   **설명:** Perplexity AI의 검색 API를 사용하여 최신 정보를 검색합니다. 실시간 웹 검색 결과를 제공하며, 지역별 검색 결과 필터링이 가능합니다.
+*   **입력 (`inputs`):**
+    *   `query` (string, 필수): 검색할 단어나 문장입니다.
+    *   `country` (string, 선택): 지역별 검색 결과를 위한 ISO 3166-1 alpha-2 국가 코드 (예: "US", "KR", "JP").
+    *   `includeHtml` (boolean, 선택, 기본값: `false`): HTML 태그 포함 여부.
+*   **예상 출력 (MCP 응답의 `result.content[0].text` 내부 JSON 문자열):**
+    ```json
+    {
+      "query": "검색어",
+      "country": "KR", // 제공된 경우
+      "results": [
+        {
+          "title": "검색 결과 제목",
+          "url": "https://example.com",
+          "snippet": "검색 결과 요약 내용...",
+          "date": "2024-01-01", // 제공된 경우
+          "last_updated": "2024-01-01" // 제공된 경우
+        }
+      ],
+      "retrievedAt": "YYYY-MM-DDTHH:mm:ss.sssZ",
+      "searchEngine": "perplexity",
+      "totalResults": 3
+    }
+    ```
+*   **호출 예시 (Stdio):**
+    ```json
+    {
+      "tool": "perplexitySearch",
+      "inputs": {
+        "query": "최신 AI 동향 2024",
+        "country": "KR",
+        "includeHtml": false
+      },
+      "id": "readme-perplexity-search"
+    }
+    ```
+
+### 4. `fetchUrl` (URL 콘텐츠 가져오기 및 사용자 정의 URL 검색)
 
 *   **설명:** 제공된 URL의 웹 페이지 콘텐츠를 가져옵니다. 선택적으로 검색어(`query`)와 검색어 파라미터명(`queryParamName`)을 제공하여, 해당 URL에 검색어를 추가하여 요청하고 그 결과를 반환할 수 있습니다 (예: 특정 검색 엔진의 URL 템플릿에 검색어 삽입).
 *   **입력 (`inputs`):**
